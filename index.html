@@ -1357,6 +1357,12 @@
         html += '<div class="kv-row"><span class="kv-key">Execution Time</span><span class="kv-val">' + escapeHtml(v.executionTime) + '</span></div>';
       }
       html += '</div></div>';
+      if (v.error) {
+        html += '<div class="detail-section"><h4>Error</h4><div class="detail-content">';
+        html += '<div class="kv-row"><span class="kv-key">Error Code</span><span class="kv-val" style="color:var(--red);font-weight:600;">' + escapeHtml(v.error.userErrorCode || '') + '</span></div>';
+        html += '<div class="kv-row"><span class="kv-key">Message</span><span class="kv-val" style="color:var(--red);">' + escapeHtml(v.error.message || '') + '</span></div>';
+        html += '</div></div>';
+      }
       if (v.observation) {
         html += '<div class="detail-section"><h4>Observation / Output</h4><div class="detail-content">';
         if (v.observation.search_result && v.observation.search_result.search_results) {
