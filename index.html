@@ -310,7 +310,7 @@
   .step.type-thought .dot { background: var(--orange); border-color: var(--orange); }
   .step.type-tool .dot { background: var(--cyan); border-color: var(--cyan); }
   .step.type-search .dot { background: var(--pink); border-color: var(--pink); }
-  .step.type-error .dot { background: var(--red); border-color: var(--red); }
+
   .step.type-info .dot { background: var(--text-muted); border-color: var(--text-muted); }
   .step.type-typing .dot { background: var(--surface2); border-color: var(--text-muted); width:8px; height:8px; top:16px; left:-30px; }
 
@@ -1154,7 +1154,8 @@
     html = html.replace(/^  - (.+)$/gm, '<li style="margin-left:16px">$1</li>');
     html = html.replace(/^    - (.+)$/gm, '<li style="margin-left:32px">$1</li>');
     // Wrap consecutive <li> elements in <ul>
-    html = html.replace(/((?:<li[^>]*>.*?<\/li>\s*)+)/g, '<ul>$1</ul>');
+    html = html.replace(/((?:<li>\d+\..+?<\/li>\s*)+)/g, '<ol>$1</ol>');
+    html = html.replace(/((?:<li>(?!\d+\.).+?<\/li>\s*)+)/g, '<ul>$1</ul>');
     // Paragraphs (consecutive lines without tags)
     html = html.replace(/\n\n/g, '</p><p>');
     html = html.replace(/\n/g, '<br>');
@@ -1352,7 +1353,8 @@
       const v = act.value || {};
       html += '<div class="detail-section"><h4>Step Result</h4><div class="detail-content">';
       html += '<div class="kv-row"><span class="kv-key">Task/Agent</span><span class="kv-val"><code>' + escapeHtml(v.taskDialogId || '') + '</code></span></div>';
-      html += '<div class="kv-row"><span class="kv-key">State</span><span class="kv-val" style="color:var(--green);font-weight:600;">' + escapeHtml(v.state || '') + '</span></div>';
+      const stateColor = (v.state === 'completed') ? 'var(--green)' : (v.state === 'failed' || v.state === 'error' || v.state === 'faulted') ? 'var(--red)' : 'var(--text)';
+      html += '<div class="kv-row"><span class="kv-key">State</span><span class="kv-val" style="color:' + stateColor + ';font-weight:600;">' + escapeHtml(v.state || '') + '</span></div>';
       if (v.executionTime) {
         html += '<div class="kv-row"><span class="kv-key">Execution Time</span><span class="kv-val">' + escapeHtml(v.executionTime) + '</span></div>';
       }
@@ -1437,7 +1439,7 @@
     }
 
     // Generative Answers
-    if (act.name === 'GenerativeAnswersSupportData' && act.value) {
+    if ((vt === 'GenerativeAnswersSupportData' || act.name === 'GenerativeAnswersSupportData') && act.value) {
       const v = act.value;
       html += '<div class="detail-section"><h4>Generative Answers Debug</h4><div class="detail-content">';
       html += '<div class="kv-row"><span class="kv-key">GPT Answer State</span><span class="kv-val">' + escapeHtml(v.gptAnswerState || '') + '</span></div>';
@@ -2153,6 +2155,7 @@
         header.setAttribute('role', 'button');
         header.setAttribute('tabindex', '0');
         header.setAttribute('aria-expanded', 'true');
+        header.setAttribute('aria-label', 'Plan: ' + displayName);
         function togglePlanGroup() {
           group.classList.toggle('collapsed');
           header.setAttribute('aria-expanded', !group.classList.contains('collapsed'));
@@ -2615,6 +2618,9 @@ ${toggleScript}
   // === COMPARE MODE ===
   function enterCompareMode(dataA) {
     const fileNameA = currentFileName;
+
+    // Clean up scroll listener before switching views
+    if (scrollCleanup) { scrollCleanup(); scrollCleanup = null; }
 
     // Hide main viewer, show compare view
     viewer.classList.add('hidden');
