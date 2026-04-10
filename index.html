@@ -2800,50 +2800,66 @@
     }
 
     // === KEYBOARD NAVIGATION ===
+    // Navigates through all visible focusable headers (step-headers AND plan-group-headers)
+    // in DOM order, using offsetParent to detect real visibility regardless of the hiding mechanism.
     (function initKeyboardNav() {
-      function getAllVisibleSteps() {
-        return Array.from(timeline.querySelectorAll('.step:not(.hidden):not(.search-hidden)')).filter(s => !s.closest('.plan-group.collapsed'));
+      function getVisibleHeaders() {
+        const all = timeline.querySelectorAll('.step-header[tabindex], .plan-group-header[tabindex]');
+        const result = [];
+        for (let i = 0; i < all.length; i++) {
+          if (all[i].offsetParent !== null) result.push(all[i]);
+        }
+        return result;
       }
-      function getFocusedStep() {
-        const focused = document.activeElement;
-        if (focused && focused.classList.contains('step-header')) return focused.closest('.step');
-        return null;
-      }
+
       document.addEventListener('keydown', (e) => {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
         if (viewer.classList.contains('hidden')) return;
 
-        const steps = getAllVisibleSteps();
-        if (!steps.length) return;
+        const headers = getVisibleHeaders();
+        if (!headers.length) return;
 
-        const current = getFocusedStep();
-        let currentIdx = current ? steps.indexOf(current) : -1;
+        const focused = document.activeElement;
+        const currentIdx = headers.indexOf(focused);
 
         if (e.key === 'ArrowDown' || e.key === 'j') {
           e.preventDefault();
-          const nextIdx = Math.min(currentIdx + 1, steps.length - 1);
-          const header = steps[nextIdx].querySelector('.step-header');
-          if (header) { header.focus(); steps[nextIdx].scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+          const nextIdx = Math.min(currentIdx + 1, headers.length - 1);
+          headers[nextIdx].focus();
+          headers[nextIdx].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
         } else if (e.key === 'ArrowUp' || e.key === 'k') {
           e.preventDefault();
           const prevIdx = Math.max(currentIdx - 1, 0);
-          const header = steps[prevIdx].querySelector('.step-header');
-          if (header) { header.focus(); steps[prevIdx].scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
-        } else if (e.key === 'Enter' && current) {
+          headers[prevIdx].focus();
+          headers[prevIdx].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        } else if (e.key === 'Enter' && currentIdx >= 0) {
           e.preventDefault();
-          current.classList.toggle('expanded');
-        } else if (e.key === 'Escape' && current) {
+          const step = focused.closest('.step');
+          if (step) {
+            step.classList.toggle('expanded');
+            focused.setAttribute('aria-expanded', step.classList.contains('expanded'));
+          } else {
+            // Plan group header — toggle collapse
+            const pg = focused.closest('.plan-group');
+            if (pg) {
+              pg.classList.toggle('collapsed');
+              focused.setAttribute('aria-expanded', !pg.classList.contains('collapsed'));
+            }
+          }
+        } else if (e.key === 'Escape' && currentIdx >= 0) {
           e.preventDefault();
-          if (current.classList.contains('expanded')) {
-            current.classList.remove('expanded');
+          const step = focused.closest('.step');
+          if (step && step.classList.contains('expanded')) {
+            step.classList.remove('expanded');
+            focused.setAttribute('aria-expanded', 'false');
           } else {
             // Move focus to parent plan group header
-            const planChildren = current.closest('.plan-group-children');
+            const planChildren = focused.closest('.plan-group-children');
             if (planChildren) {
               const planGroup = planChildren.closest('.plan-group');
               if (planGroup) {
                 const pgHeader = planGroup.querySelector('.plan-group-header');
-                if (pgHeader) { pgHeader.focus(); planGroup.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+                if (pgHeader) { pgHeader.focus(); pgHeader.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
               }
             }
           }
