@@ -19,6 +19,7 @@
     --purple: #bc8cff;
     --cyan: #39d2c0;
     --pink: #f778ba;
+    --heading: #ffffff;
   }
   [data-theme="light"] {
     --bg: #ffffff;
@@ -34,23 +35,7 @@
     --purple: #8250df;
     --cyan: #1b7c83;
     --pink: #bf3989;
-  }
-  @media (prefers-color-scheme: light) {
-    :root:not([data-theme="dark"]) {
-      --bg: #ffffff;
-      --surface: #f6f8fa;
-      --surface2: #eaeef2;
-      --border: #d0d7de;
-      --text: #1f2328;
-      --text-muted: #656d76;
-      --accent: #0969da;
-      --green: #1a7f37;
-      --orange: #9a6700;
-      --red: #cf222e;
-      --purple: #8250df;
-      --cyan: #1b7c83;
-      --pink: #bf3989;
-    }
+    --heading: #1f2328;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -71,7 +56,7 @@
   header h1 {
     font-size: 18px;
     font-weight: 600;
-    color: #fff;
+    color: var(--heading);
   }
   header .subtitle {
     font-size: 13px;
@@ -142,7 +127,7 @@
   .chat-pane-header h3 {
     font-size: 14px;
     font-weight: 600;
-    color: #fff;
+    color: var(--heading);
     display: flex;
     align-items: center;
     gap: 8px;
@@ -363,6 +348,8 @@
     user-select: none;
   }
   .step-header:hover { background: var(--surface2); }
+  .step-header:focus { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 6px; }
+  [data-theme="dark"] .step-header:focus, :root:not([data-theme="light"]) .step-header:focus { outline-color: var(--accent); }
   .step-badge {
     font-size: 10px;
     font-weight: 600;
@@ -488,8 +475,8 @@
   .hidden { display: none !important; }
 
   /* Markdown-ish rendering */
-  .rendered-md h3 { font-size: 15px; margin: 12px 0 6px; color: #fff; }
-  .rendered-md strong { color: #fff; }
+  .rendered-md h3 { font-size: 15px; margin: 12px 0 6px; color: var(--heading); }
+  .rendered-md strong { color: var(--heading); }
   .rendered-md ul, .rendered-md ol { padding-left: 20px; margin: 6px 0; }
   .rendered-md li { margin: 3px 0; }
   .rendered-md p { margin: 6px 0; }
@@ -669,7 +656,7 @@
   .plan-group.search-hidden { display: none !important; }
   .step .search-highlight {
     background: rgba(210,153,34,0.35);
-    color: #fff;
+    color: var(--heading);
     border-radius: 2px;
     padding: 0 1px;
   }
@@ -755,7 +742,7 @@
   .stat-card .stat-value {
     font-size: 22px;
     font-weight: 700;
-    color: #fff;
+    color: var(--heading);
     line-height: 1.2;
   }
   .stat-card .stat-value.stat-green { color: var(--green); }
@@ -894,7 +881,7 @@
   .compare-summary h3 {
     font-size: 14px;
     font-weight: 600;
-    color: #fff;
+    color: var(--heading);
     margin-bottom: 10px;
   }
   .compare-summary .diff-grid {
@@ -1140,20 +1127,12 @@
     }
     function updateIcon() {
       const current = document.documentElement.getAttribute('data-theme');
-      if (current === 'light') { icon.innerHTML = '&#9728;&#65039;'; }
-      else if (current === 'dark') { icon.innerHTML = '&#127769;'; }
-      else {
-        // Auto — check system preference
-        icon.innerHTML = window.matchMedia('(prefers-color-scheme: light)').matches ? '&#9728;&#65039;' : '&#127769;';
-      }
+      icon.innerHTML = (current === 'light') ? '&#9728;&#65039;' : '&#127769;';
     }
     updateIcon();
     toggle.addEventListener('click', () => {
       const current = document.documentElement.getAttribute('data-theme');
-      let next;
-      if (current === 'dark') next = 'light';
-      else if (current === 'light') next = 'dark';
-      else next = window.matchMedia('(prefers-color-scheme: light)').matches ? 'dark' : 'light';
+      const next = (current === 'light') ? 'dark' : 'light';
       document.documentElement.setAttribute('data-theme', next);
       localStorage.setItem('trace-viewer-theme', next);
       updateIcon();
@@ -3021,7 +3000,7 @@ ${toggleScript}
     cToolbar.style.marginBottom = '16px';
 
     const cTitle = document.createElement('span');
-    cTitle.style.cssText = 'font-size:14px;font-weight:600;color:#fff;';
+    cTitle.style.cssText = 'font-size:14px;font-weight:600;color:var(--heading);';
     cTitle.textContent = 'Compare Traces';
     cToolbar.appendChild(cTitle);
 
