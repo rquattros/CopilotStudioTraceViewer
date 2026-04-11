@@ -1099,6 +1099,10 @@
   .flow-body { padding: 12px; overflow-x: auto; }
   .flow-body.collapsed-body { display: none; }
   .flow-svg text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; }
+  .flow-svg .flow-agent-node { filter: drop-shadow(0 1px 3px rgba(0,0,0,0.2)); }
+  .flow-svg .flow-agent-label { font-weight: 600; }
+  .flow-svg .flow-handoff-edge { stroke-dasharray: 6,3; }
+  .flow-svg .flow-return-edge { stroke-dasharray: 3,3; }
 
   /* === Dependency lines === */
   .dep-lines-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
@@ -3413,86 +3417,234 @@
 
     // === #4: CONVERSATION FLOW DIAGRAM ===
     (function initFlowDiagram() {
-      const dialogTraces = activities.filter(a => a.valueType === 'DialogTracingInfo' && a.value && a.value.actions);
-      if (dialogTraces.length === 0) return;
+      // Build flow from plans, connected agents, AND dialog tracing
+      // Node types: 'agent' (parent/connected), 'topic', 'action', 'knowledge'
+      const flowNodes = {};    // id -> { id, label, type, agent? }
+      const flowEdges = [];    // { from, to, label, edgeType }
 
-      // Extract topic transitions
-      const nodes = new Set();
-      const edges = []; // { from, to, action }
-      let prevTopic = null;
-      dialogTraces.forEach(a => {
-        (a.value.actions || []).forEach(action => {
-          const topicId = action.topicId || '';
-          const shortTopic = topicId.split('.').pop() || topicId;
-          if (!shortTopic) return;
-          nodes.add(shortTopic);
-          if (prevTopic && prevTopic !== shortTopic) {
-            edges.push({ from: prevTopic, to: shortTopic, action: action.actionType || '' });
+      // Detect parent agent from ConnectedAgentInitializeTraceData
+      const connInits = activities.filter(a => a.valueType === 'ConnectedAgentInitializeTraceData');
+      const connCompletes = activities.filter(a => a.valueType === 'ConnectedAgentCompletedTraceData');
+      const planReceivedDebugs = activities.filter(a => a.valueType === 'DynamicPlanReceivedDebug');
+      const planReceiveds = activities.filter(a => a.valueType === 'DynamicPlanReceived');
+      const stepTriggered = activities.filter(a => a.valueType === 'DynamicPlanStepTriggered');
+      const dialogTraces = activities.filter(a => a.valueType === 'DialogTracingInfo' && a.value && a.value.actions);
+
+      // Map planIdentifier -> debug info
+      const planDebug = {};
+      planReceivedDebugs.forEach(a => { planDebug[a.value.planIdentifier] = a.value; });
+      // Map planIdentifier -> plan info (tool kinds etc)
+      const planInfo = {};
+      planReceiveds.forEach(a => { planInfo[a.value.planIdentifier] = a.value; });
+
+      // Detect parent agent name
+      let parentAgentSchema = '';
+      connInits.forEach(a => { if (a.value.parentBotSchemaName) parentAgentSchema = a.value.parentBotSchemaName; });
+
+      // Build a sequence of flow events in activity order
+      const flowSeq = []; // { type, data, actIdx }
+      activities.forEach((a, idx) => {
+        const vt = a.valueType;
+        if (vt === 'DynamicPlanStepTriggered') {
+          flowSeq.push({ type: 'step', data: a.value, actIdx: idx });
+        } else if (vt === 'ConnectedAgentInitializeTraceData') {
+          flowSeq.push({ type: 'agent-init', data: a.value, actIdx: idx });
+        } else if (vt === 'ConnectedAgentCompletedTraceData') {
+          flowSeq.push({ type: 'agent-done', data: a.value, actIdx: idx });
+        } else if (vt === 'DialogTracingInfo' && a.value && a.value.actions) {
+          a.value.actions.forEach(action => {
+            flowSeq.push({ type: 'dialog', data: action, actIdx: idx });
+          });
+        }
+      });
+
+      if (flowSeq.length === 0) return;
+
+      // Track connected agent context
+      let currentAgent = parentAgentSchema ? parentAgentSchema.split('_').pop() : 'Parent Agent';
+      const connAgentStepIds = new Set(); // stepIds that are connected agent invocations
+      connInits.forEach(a => { if (a.value.planStepId) connAgentStepIds.add(a.value.planStepId); });
+
+      // Map connected agent schema -> friendly name from tool definitions
+      const connAgentNames = {};
+      planReceiveds.forEach(a => {
+        (a.value.toolDefinitions || []).forEach(td => {
+          if (td.toolKind === 'InvokeConnectedAgentTaskAction') {
+            connAgentNames[td.schemaName] = td.displayName || td.schemaName.split('.').pop();
           }
-          prevTopic = shortTopic;
         });
       });
 
-      if (nodes.size === 0) return;
+      function addNode(id, label, type, agent) {
+        if (!flowNodes[id]) flowNodes[id] = { id, label, type, agent: agent || '' };
+      }
+
+      // Process flow sequence
+      let prevNodeId = null;
+      let insideConnectedAgent = null; // schema name when inside connected agent
+
+      flowSeq.forEach(ev => {
+        if (ev.type === 'agent-init') {
+          const d = ev.data;
+          const connSchema = d.botSchemaName || '';
+          const connName = d.dialogSchemaName ? (connAgentNames[d.dialogSchemaName] || d.dialogSchemaName.split('.').pop()) : connSchema.split('_').pop();
+          const nodeId = 'agent:' + connSchema;
+          addNode(nodeId, connName, 'agent-connected');
+          if (prevNodeId) flowEdges.push({ from: prevNodeId, to: nodeId, label: 'handoff', edgeType: 'handoff' });
+          prevNodeId = nodeId;
+          insideConnectedAgent = connSchema;
+
+        } else if (ev.type === 'agent-done') {
+          const parentSchema = ev.data.parentBotSchemaName || parentAgentSchema;
+          const parentId = 'agent:' + parentSchema;
+          const parentLabel = parentSchema ? parentSchema.split('_').pop() : 'Parent Agent';
+          addNode(parentId, parentLabel, 'agent-parent');
+          if (prevNodeId) flowEdges.push({ from: prevNodeId, to: parentId, label: 'return', edgeType: 'return' });
+          prevNodeId = parentId;
+          insideConnectedAgent = null;
+
+        } else if (ev.type === 'step') {
+          const d = ev.data;
+          const taskId = d.taskDialogId || '';
+          // Skip if this step IS the connected agent invocation itself (we handle that via agent-init)
+          if (connAgentStepIds.has(d.stepId)) return;
+          const shortName = taskId.split('.').pop() || taskId;
+          const stepType = (d.type || '').toLowerCase();
+          let nodeType = 'action';
+          if (stepType === 'knowledgesource' || taskId.includes('UniversalSearch')) nodeType = 'knowledge';
+          else if (stepType === 'customtopic' || stepType === 'adaptivedialogs') nodeType = 'topic';
+          const nodeId = 'step:' + shortName;
+          addNode(nodeId, shortName, nodeType, insideConnectedAgent || '');
+          const thought = d.thought || '';
+          const edgeLabel = thought.length > 50 ? thought.substring(0, 48) + '..' : thought;
+          if (prevNodeId) flowEdges.push({ from: prevNodeId, to: nodeId, label: '', edgeType: 'flow' });
+          prevNodeId = nodeId;
+
+        } else if (ev.type === 'dialog') {
+          const action = ev.data;
+          const topicId = action.topicId || '';
+          const shortTopic = topicId.split('.').pop() || topicId;
+          if (!shortTopic) return;
+          const nodeId = 'dialog:' + shortTopic;
+          addNode(nodeId, shortTopic, 'topic');
+          if (prevNodeId && prevNodeId !== nodeId) {
+            flowEdges.push({ from: prevNodeId, to: nodeId, label: action.actionType || '', edgeType: 'flow' });
+          }
+          prevNodeId = nodeId;
+        }
+      });
+
+      const nodeArr = Object.values(flowNodes);
+      if (nodeArr.length === 0) return;
 
       flowPanel.classList.remove('hidden');
       let collapsed = false;
 
-      // Simple layout: nodes in a row, edges as curved arrows
-      const nodeArr = [...nodes];
-      const nodeW = 120, nodeH = 36, gapX = 40, gapY = 60;
-      const cols = Math.min(nodeArr.length, 5);
-      const rowCount = Math.ceil(nodeArr.length / cols);
-      const svgW = cols * (nodeW + gapX) + gapX;
-      const svgH = rowCount * (nodeH + gapY) + gapY + 20;
-
-      const nodePos = {};
-      nodeArr.forEach((n, i) => {
-        const col = i % cols;
-        const row = Math.floor(i / cols);
-        nodePos[n] = { x: gapX + col * (nodeW + gapX), y: gapY + row * (nodeH + gapY) };
-      });
-
       // Deduplicate edges
-      const edgeKey = (e) => e.from + '->' + e.to;
       const edgeMap = {};
-      edges.forEach(e => {
-        const k = edgeKey(e);
+      flowEdges.forEach(e => {
+        const k = e.from + '->' + e.to;
         if (!edgeMap[k]) edgeMap[k] = { ...e, count: 0 };
         edgeMap[k].count++;
       });
       const dedupEdges = Object.values(edgeMap);
 
-      let svgHtml = '<svg class="flow-svg" width="' + svgW + '" height="' + svgH + '" viewBox="0 0 ' + svgW + ' ' + svgH + '">';
-      svgHtml += '<defs><marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="var(--text-muted)"/></marker></defs>';
+      // Layout: vertical flow, agent nodes wider
+      const nodeW = 140, agentW = 170, nodeH = 38, gapX = 50, gapY = 55;
+      const cols = Math.min(nodeArr.length, 4);
+      const rowCount = Math.ceil(nodeArr.length / cols);
+      const maxW = cols * (agentW + gapX) + gapX;
+      const svgH = rowCount * (nodeH + gapY) + gapY + 30;
+
+      const nodePos = {};
+      nodeArr.forEach((n, i) => {
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        const w = (n.type === 'agent-connected' || n.type === 'agent-parent') ? agentW : nodeW;
+        const totalRowW = cols * (w + gapX);
+        nodePos[n.id] = { x: gapX + col * (agentW + gapX), y: gapY + row * (nodeH + gapY), w };
+      });
+
+      // Node visual config
+      function nodeStyle(n) {
+        if (n.type === 'agent-connected') return { fill: 'var(--purple)', stroke: 'var(--purple)', textFill: '#fff', rx: 18, icon: '\uD83E\uDD16 ' };
+        if (n.type === 'agent-parent') return { fill: 'var(--accent)', stroke: 'var(--accent)', textFill: '#fff', rx: 18, icon: '\uD83E\uDD16 ' };
+        if (n.type === 'knowledge') return { fill: 'var(--surface2)', stroke: 'var(--cyan)', textFill: 'var(--text)', rx: 6, icon: '\uD83D\uDD0D ' };
+        if (n.type === 'topic') return { fill: 'var(--surface2)', stroke: 'var(--green)', textFill: 'var(--text)', rx: 6, icon: '' };
+        return { fill: 'var(--surface2)', stroke: 'var(--border)', textFill: 'var(--text)', rx: 6, icon: '' };
+      }
+
+      let svgHtml = '<svg class="flow-svg" width="' + maxW + '" height="' + svgH + '" viewBox="0 0 ' + maxW + ' ' + svgH + '">';
+      svgHtml += '<defs>';
+      svgHtml += '<marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="var(--text-muted)"/></marker>';
+      svgHtml += '<marker id="arrowhead-handoff" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="var(--purple)"/></marker>';
+      svgHtml += '<marker id="arrowhead-return" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="var(--accent)"/></marker>';
+      svgHtml += '</defs>';
 
       // Draw edges
       dedupEdges.forEach(e => {
         const from = nodePos[e.from];
         const to = nodePos[e.to];
         if (!from || !to) return;
-        const x1 = from.x + nodeW / 2, y1 = from.y + nodeH;
-        const x2 = to.x + nodeW / 2, y2 = to.y;
-        const midY = (y1 + y2) / 2;
-        svgHtml += '<path d="M' + x1 + ',' + y1 + ' C' + x1 + ',' + midY + ' ' + x2 + ',' + midY + ' ' + x2 + ',' + y2 + '" fill="none" stroke="var(--text-muted)" stroke-width="1.5" marker-end="url(#arrowhead)" opacity="0.6"/>';
+        const fromW = from.w || nodeW;
+        const toW = to.w || nodeW;
+        const x1 = from.x + fromW / 2, y1 = from.y + nodeH;
+        const x2 = to.x + toW / 2, y2 = to.y;
+        let edgeCls = '', strokeColor = 'var(--text-muted)', marker = 'url(#arrowhead)', strokeW = '1.5', opacity = '0.5';
+        if (e.edgeType === 'handoff') {
+          edgeCls = ' class="flow-handoff-edge"'; strokeColor = 'var(--purple)'; marker = 'url(#arrowhead-handoff)'; strokeW = '2.5'; opacity = '0.8';
+        } else if (e.edgeType === 'return') {
+          edgeCls = ' class="flow-return-edge"'; strokeColor = 'var(--accent)'; marker = 'url(#arrowhead-return)'; strokeW = '2.5'; opacity = '0.8';
+        }
+        // Curved path
+        const sameCol = Math.abs(x1 - x2) < 10;
+        if (sameCol) {
+          svgHtml += '<path d="M' + x1 + ',' + y1 + ' L' + x2 + ',' + y2 + '"' + edgeCls + ' fill="none" stroke="' + strokeColor + '" stroke-width="' + strokeW + '" marker-end="' + marker + '" opacity="' + opacity + '"/>';
+        } else {
+          const midY = (y1 + y2) / 2;
+          svgHtml += '<path d="M' + x1 + ',' + y1 + ' C' + x1 + ',' + midY + ' ' + x2 + ',' + midY + ' ' + x2 + ',' + y2 + '"' + edgeCls + ' fill="none" stroke="' + strokeColor + '" stroke-width="' + strokeW + '" marker-end="' + marker + '" opacity="' + opacity + '"/>';
+        }
         // Edge label
-        const mx = (x1 + x2) / 2, my = midY - 6;
-        if (e.action) {
-          svgHtml += '<text x="' + mx + '" y="' + my + '" font-size="9" fill="var(--text-muted)" text-anchor="middle">' + escapeHtml(e.action) + (e.count > 1 ? ' x' + e.count : '') + '</text>';
+        if (e.label) {
+          const mx = (x1 + x2) / 2, my = (y1 + y2) / 2 - 6;
+          const lbl = e.label + (e.count > 1 ? ' x' + e.count : '');
+          svgHtml += '<text x="' + mx + '" y="' + my + '" font-size="9" fill="' + strokeColor + '" text-anchor="middle" font-weight="' + (e.edgeType === 'handoff' || e.edgeType === 'return' ? '600' : '400') + '">' + escapeHtml(lbl) + '</text>';
         }
       });
 
       // Draw nodes
       nodeArr.forEach(n => {
-        const p = nodePos[n];
-        const isError = n === 'Fallback';
-        svgHtml += '<rect x="' + p.x + '" y="' + p.y + '" width="' + nodeW + '" height="' + nodeH + '" rx="6" fill="' + (isError ? 'var(--red)' : 'var(--surface2)') + '" stroke="var(--border)" stroke-width="1"/>';
-        svgHtml += '<text x="' + (p.x + nodeW/2) + '" y="' + (p.y + nodeH/2 + 4) + '" font-size="11" fill="' + (isError ? '#fff' : 'var(--text)') + '" text-anchor="middle">' + escapeHtml(n.length > 16 ? n.substring(0,14) + '..' : n) + '</text>';
+        const p = nodePos[n.id];
+        if (!p) return;
+        const s = nodeStyle(n);
+        const w = p.w || nodeW;
+        svgHtml += '<rect x="' + p.x + '" y="' + p.y + '" width="' + w + '" height="' + nodeH + '" rx="' + s.rx + '" fill="' + s.fill + '" stroke="' + s.stroke + '" stroke-width="' + ((n.type === 'agent-connected' || n.type === 'agent-parent') ? 2 : 1) + '"' + ((n.type === 'agent-connected' || n.type === 'agent-parent') ? ' class="flow-agent-node"' : '') + '/>';
+        const displayLabel = s.icon + (n.label.length > 18 ? n.label.substring(0,16) + '..' : n.label);
+        svgHtml += '<text x="' + (p.x + w/2) + '" y="' + (p.y + nodeH/2 + 5) + '" font-size="11" fill="' + s.textFill + '" text-anchor="middle"' + ((n.type === 'agent-connected' || n.type === 'agent-parent') ? ' class="flow-agent-label"' : '') + '>' + escapeHtml(displayLabel) + '</text>';
       });
 
       svgHtml += '</svg>';
 
-      flowPanel.innerHTML = '<div class="flow-header"><h3>&#128256; Topic Flow</h3><span style="font-size:12px;color:var(--text-muted);">' + nodeArr.length + ' topics, ' + dedupEdges.length + ' transitions</span></div><div class="flow-body" id="flow-body">' + svgHtml + '</div>';
+      // Stats
+      const agentCount = nodeArr.filter(n => n.type === 'agent-connected' || n.type === 'agent-parent').length;
+      const topicCount = nodeArr.filter(n => n.type === 'topic').length;
+      const handoffs = dedupEdges.filter(e => e.edgeType === 'handoff').length;
+      let statsText = nodeArr.length + ' nodes';
+      if (agentCount > 0) statsText += ', ' + agentCount + ' agents';
+      if (topicCount > 0) statsText += ', ' + topicCount + ' topics';
+      if (handoffs > 0) statsText += ', ' + handoffs + ' handoff' + (handoffs > 1 ? 's' : '');
+
+      // Legend
+      let legendHtml = '<div style="display:flex;gap:12px;flex-wrap:wrap;padding:8px 16px;font-size:11px;color:var(--text-muted);border-top:1px solid var(--border);">';
+      legendHtml += '<span>\uD83E\uDD16 <span style="color:var(--accent)">\u25CF</span> Parent Agent</span>';
+      legendHtml += '<span>\uD83E\uDD16 <span style="color:var(--purple)">\u25CF</span> Connected Agent</span>';
+      legendHtml += '<span>\uD83D\uDD0D Knowledge</span>';
+      legendHtml += '<span>\u25A0 Topic / Action</span>';
+      legendHtml += '<span><svg width="20" height="8" style="vertical-align:middle"><line x1="0" y1="4" x2="20" y2="4" stroke="var(--purple)" stroke-width="2" stroke-dasharray="6,3"/></svg> Handoff</span>';
+      legendHtml += '<span><svg width="20" height="8" style="vertical-align:middle"><line x1="0" y1="4" x2="20" y2="4" stroke="var(--accent)" stroke-width="2" stroke-dasharray="3,3"/></svg> Return</span>';
+      legendHtml += '</div>';
+
+      flowPanel.innerHTML = '<div class="flow-header"><h3>&#128256; Topic Flow</h3><span style="font-size:12px;color:var(--text-muted);">' + statsText + '</span></div><div class="flow-body" id="flow-body">' + svgHtml + '</div>' + legendHtml;
 
       flowPanel.querySelector('.flow-header').addEventListener('click', () => {
         collapsed = !collapsed;
