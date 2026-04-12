@@ -1142,6 +1142,37 @@
   .var-state-kv { display: flex; gap: 8px; flex-wrap: wrap; }
   .var-state-chip { font-size: 11px; font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; padding: 2px 8px; background: var(--surface2); border-radius: 4px; border: 1px solid var(--border); }
 
+  /* === Agent Definition Panel (botContent.yml) === */
+  .agent-def-panel { margin: 16px 0; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .agent-def-panel.hidden { display: none; }
+  .agent-def-header { padding: 10px 16px; background: var(--surface2); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+  .agent-def-header h3 { font-size: 14px; color: var(--heading); }
+  .agent-def-body { padding: 12px 16px; }
+  .agent-def-body.collapsed-body { display: none; }
+  .agent-def-section { margin-bottom: 16px; }
+  .agent-def-section:last-child { margin-bottom: 0; }
+  .agent-def-section h4 { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .agent-def-instructions { font-size: 12px; color: var(--text); white-space: pre-wrap; background: var(--surface2); padding: 10px 14px; border-radius: 6px; border: 1px solid var(--border); line-height: 1.6; max-height: 200px; overflow-y: auto; }
+  .agent-def-settings { display: flex; flex-wrap: wrap; gap: 8px; }
+  .agent-def-chip { font-size: 11px; padding: 3px 10px; background: var(--surface2); border-radius: 4px; border: 1px solid var(--border); color: var(--text); }
+  .agent-def-chip .chip-label { color: var(--text-muted); margin-right: 4px; }
+  .agent-def-chip.chip-on { border-color: var(--green); color: var(--green); }
+  .agent-def-chip.chip-off { border-color: var(--red); color: var(--red); }
+  .topic-map-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .topic-map-table th { text-align: left; padding: 6px 10px; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid var(--border); }
+  .topic-map-table td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .topic-map-table tr:last-child td { border-bottom: none; }
+  .topic-trigger-list { font-size: 11px; color: var(--text-muted); max-height: 60px; overflow-y: auto; line-height: 1.5; }
+  .topic-trigger-item { display: inline-block; padding: 1px 6px; background: var(--surface2); border-radius: 3px; border: 1px solid var(--border); margin: 1px 2px; white-space: nowrap; }
+  .topic-action-flow { font-size: 11px; color: var(--text-muted); display: flex; flex-wrap: wrap; gap: 2px; align-items: center; }
+  .topic-action-node { padding: 1px 6px; background: var(--surface2); border-radius: 3px; border: 1px solid var(--border); }
+  .topic-action-arrow { color: var(--text-muted); font-size: 9px; }
+  .topic-schema-code { font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; font-size: 10px; color: var(--text-muted); }
+  .trigger-phrase-box { margin-top: 6px; padding: 6px 10px; background: var(--surface2); border-radius: 4px; border: 1px solid var(--border); }
+  .trigger-phrase-box .tp-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .trigger-phrase-box .tp-list { display: flex; flex-wrap: wrap; gap: 3px; }
+  .trigger-phrase-box .tp-item { font-size: 11px; padding: 1px 6px; background: var(--bg); border-radius: 3px; border: 1px solid var(--border); color: var(--text); }
+
   /* === Dependency lines === */
   .dep-lines-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
   .dep-line { fill: none; stroke-width: 1.5; opacity: 0.5; }
@@ -1372,6 +1403,7 @@
         <div id="citation-panel" class="citation-panel hidden"></div>
         <div id="flow-panel" class="flow-panel hidden"></div>
         <div id="variables-panel" class="variables-panel hidden"></div>
+        <div id="agent-def-panel" class="agent-def-panel hidden"></div>
         <div class="filter-bar" id="filter-bar"></div>
         <div id="breadcrumb-bar" class="breadcrumb-bar empty"></div>
         <div id="dep-legend" class="dep-legend hidden"></div>
@@ -1406,6 +1438,7 @@
   const citationPanel = document.getElementById('citation-panel');
   const flowPanel = document.getElementById('flow-panel');
   const variablesPanel = document.getElementById('variables-panel');
+  const agentDefPanel = document.getElementById('agent-def-panel');
   const batchDashboard = document.getElementById('batch-dashboard');
   const depLegend = document.getElementById('dep-legend');
   const filterBar = document.getElementById('filter-bar');
@@ -1421,6 +1454,8 @@
   const shortcutsClose = document.getElementById('shortcuts-close');
   let currentFileName = '';
   let lastLoadedData = null; // keep reference for export
+  let botContentData = null; // parsed botContent.yml data
+  let botComponentMap = {}; // schemaName → { displayName, description, triggerQueries, actions, inputs, outputs, kind }
   let scrollCleanup = null; // to remove scroll listener on reset
   let minimapCleanup = null; // to remove minimap listeners on reset
   let keyboardCleanup = null; // to remove keyboard nav listener on reset
@@ -1482,7 +1517,16 @@
     if (ext === 'zip') {
       try {
         const arrayBuf = await file.arrayBuffer();
-        const jsonText = await extractJsonFromZip(arrayBuf);
+        const { jsonText, ymlText } = await extractFromZip(arrayBuf);
+        if (ymlText) {
+          try {
+            botContentData = parseYaml(ymlText);
+            botComponentMap = buildComponentMap(botContentData);
+          } catch(e) { botContentData = null; botComponentMap = {}; }
+        } else {
+          botContentData = null;
+          botComponentMap = {};
+        }
         const data = JSON.parse(jsonText);
         processDialog(data);
       } catch(err) {
@@ -1492,6 +1536,8 @@
     }
 
     // JSON file
+    botContentData = null;
+    botComponentMap = {};
     const reader = new FileReader();
     reader.onload = e => {
       try {
@@ -1513,7 +1559,7 @@
         let data;
         if (ext === 'zip') {
           const arrayBuf = await file.arrayBuffer();
-          const jsonText = await extractJsonFromZip(arrayBuf);
+          const { jsonText } = await extractFromZip(arrayBuf);
           data = JSON.parse(jsonText);
         } else {
           const text = await file.text();
@@ -1625,61 +1671,6 @@
     });
   }
 
-  // ZIP extraction using JSZip-compatible minimal approach via native APIs
-  async function extractJsonFromZip(arrayBuf) {
-    // Use the fflate-style approach: parse ZIP central directory
-    // We'll use a minimal ZIP reader that handles standard PKZip format
-    const bytes = new Uint8Array(arrayBuf);
-    const files = parseZipEntries(bytes);
-
-    // Look for dialog.json (could be at root or inside a folder)
-    let target = null;
-    for (const f of files) {
-      const name = f.name.toLowerCase();
-      if (name === 'dialog.json' || name.endsWith('/dialog.json')) {
-        target = f;
-        break;
-      }
-    }
-    // If no dialog.json, look for any .json file
-    if (!target) {
-      for (const f of files) {
-        if (f.name.toLowerCase().endsWith('.json')) {
-          target = f;
-          break;
-        }
-      }
-    }
-    if (!target) throw new Error('No dialog.json or .json file found in the ZIP archive.');
-
-    // Decompress
-    const raw = bytes.slice(target.dataOffset, target.dataOffset + target.compressedSize);
-    if (target.compressionMethod === 0) {
-      // Stored (no compression)
-      return new TextDecoder().decode(raw);
-    } else if (target.compressionMethod === 8) {
-      // Deflate
-      const ds = new DecompressionStream('deflate-raw');
-      const writer = ds.writable.getWriter();
-      const reader = ds.readable.getReader();
-      writer.write(raw);
-      writer.close();
-      const chunks = [];
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        chunks.push(value);
-      }
-      const totalLen = chunks.reduce((s, c) => s + c.length, 0);
-      const result = new Uint8Array(totalLen);
-      let offset = 0;
-      for (const c of chunks) { result.set(c, offset); offset += c.length; }
-      return new TextDecoder().decode(result);
-    } else {
-      throw new Error('Unsupported compression method: ' + target.compressionMethod);
-    }
-  }
-
   function parseZipEntries(bytes) {
     const entries = [];
     let i = 0;
@@ -1734,6 +1725,390 @@
       }
     }
     return entries;
+  }
+
+  // === MINIMAL YAML PARSER for botContent.yml ===
+  // Handles the subset of YAML used by Copilot Studio botContent files:
+  // - Key-value pairs, nested objects via indentation, arrays via "- ", multi-line strings via |-
+  function parseYaml(text) {
+    const lines = text.split('\n');
+    const root = {};
+    const stack = [{ obj: root, indent: -1 }];
+
+    function currentObj() { return stack[stack.length - 1].obj; }
+    function currentIndent() { return stack[stack.length - 1].indent; }
+
+    let i = 0;
+    while (i < lines.length) {
+      const raw = lines[i];
+      const trimmed = raw.trimEnd();
+      i++;
+
+      // Skip empty lines and comments
+      if (trimmed === '' || trimmed.trimStart().startsWith('#')) continue;
+
+      const indent = raw.search(/\S/);
+
+      // Pop stack to matching indent level
+      while (stack.length > 1 && indent <= currentIndent()) stack.pop();
+
+      const content = trimmed.trimStart();
+
+      // Array item: "- key: value" or "- value"
+      if (content.startsWith('- ')) {
+        const parent = currentObj();
+        if (!Array.isArray(parent)) {
+          // The current key's value should be an array — this is handled by the key parser below
+          // If we get here, we're appending to the last key's array
+          i--;
+          // Find the last key that was set
+          break;
+        }
+        const itemContent = content.substring(2).trimStart();
+        if (itemContent.includes(': ')) {
+          const obj = {};
+          const colonIdx = itemContent.indexOf(': ');
+          const k = itemContent.substring(0, colonIdx).trim();
+          const v = itemContent.substring(colonIdx + 2).trim();
+          obj[k] = parseYamlValue(v);
+          parent.push(obj);
+          stack.push({ obj: obj, indent: indent + 2 });
+        } else if (itemContent.startsWith('{') || itemContent === '') {
+          const obj = {};
+          parent.push(obj);
+          stack.push({ obj: obj, indent: indent + 2 });
+        } else {
+          parent.push(parseYamlValue(itemContent));
+        }
+        continue;
+      }
+
+      // Key: value pair
+      const colonMatch = content.match(/^([^:]+?):\s*(.*)/);
+      if (colonMatch) {
+        const key = colonMatch[1].trim();
+        const val = colonMatch[2].trim();
+
+        const target = currentObj();
+        if (Array.isArray(target)) {
+          // We're inside an array but hitting a key — add to last array item
+          const lastItem = target[target.length - 1];
+          if (lastItem && typeof lastItem === 'object') {
+            if (val === '' || val === '|-' || val === '|') {
+              // Check what follows: another indented block or multiline string
+              if (val === '|-' || val === '|') {
+                // Multi-line string: collect all lines with greater indent
+                let str = '';
+                const blockIndent = indent;
+                while (i < lines.length) {
+                  const nextRaw = lines[i];
+                  const nextTrimmed = nextRaw.trimEnd();
+                  if (nextTrimmed === '') { str += '\n'; i++; continue; }
+                  const nextIndent = nextRaw.search(/\S/);
+                  if (nextIndent <= blockIndent) break;
+                  if (str) str += '\n';
+                  str += nextTrimmed.trimStart();
+                  i++;
+                }
+                lastItem[key] = str;
+              } else {
+                // Nested object or array
+                const nextLine = i < lines.length ? lines[i] : '';
+                const nextContent = nextLine.trimStart();
+                if (nextContent.startsWith('- ')) {
+                  const arr = [];
+                  lastItem[key] = arr;
+                  stack.push({ obj: arr, indent: indent });
+                } else {
+                  const obj = {};
+                  lastItem[key] = obj;
+                  stack.push({ obj: obj, indent: indent });
+                }
+              }
+            } else {
+              lastItem[key] = parseYamlValue(val);
+            }
+            continue;
+          }
+        }
+
+        if (typeof target !== 'object' || Array.isArray(target)) continue;
+
+        if (val === '' || val === '|-' || val === '|') {
+          if (val === '|-' || val === '|') {
+            let str = '';
+            const blockIndent = indent;
+            while (i < lines.length) {
+              const nextRaw = lines[i];
+              const nextTrimmed = nextRaw.trimEnd();
+              if (nextTrimmed === '') { str += '\n'; i++; continue; }
+              const nextIndent = nextRaw.search(/\S/);
+              if (nextIndent <= blockIndent) break;
+              if (str) str += '\n';
+              str += nextTrimmed.trimStart();
+              i++;
+            }
+            target[key] = str;
+          } else {
+            // Check next line to decide array vs object
+            const nextLine = i < lines.length ? lines[i] : '';
+            const nextContent = nextLine.trimStart();
+            if (nextContent.startsWith('- ')) {
+              const arr = [];
+              target[key] = arr;
+              stack.push({ obj: arr, indent: indent });
+            } else {
+              const obj = {};
+              target[key] = obj;
+              stack.push({ obj: obj, indent: indent });
+            }
+          }
+        } else {
+          target[key] = parseYamlValue(val);
+        }
+      }
+    }
+    return root;
+  }
+
+  function parseYamlValue(s) {
+    if (s === 'true') return true;
+    if (s === 'false') return false;
+    if (s === 'null' || s === '~') return null;
+    if (/^-?\d+$/.test(s)) return parseInt(s, 10);
+    if (/^-?\d+\.\d+$/.test(s)) return parseFloat(s);
+    // Strip quotes
+    if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+      return s.slice(1, -1);
+    }
+    return s;
+  }
+
+  // === PROCESS botContent.yml INTO COMPONENT MAP ===
+  function buildComponentMap(parsed) {
+    const map = {};
+    if (!parsed) return map;
+
+    // Store entity-level info
+    map._entity = {
+      schemaName: (parsed.entity && parsed.entity.schemaName) || '',
+      cdsBotId: (parsed.entity && parsed.entity.cdsBotId) || '',
+      authenticationMode: (parsed.entity && parsed.entity.authenticationMode) || '',
+      language: (parsed.entity && parsed.entity.language) || '',
+      template: (parsed.entity && parsed.entity.template) || ''
+    };
+    if (parsed.entity && parsed.entity.configuration) {
+      const cfg = parsed.entity.configuration;
+      map._entity.aiSettings = cfg.aISettings || {};
+      map._entity.settings = cfg.settings || {};
+      map._entity.recognizer = cfg.recognizer || {};
+    }
+
+    const components = parsed.components || [];
+    components.forEach(comp => {
+      const entry = {
+        kind: comp.kind || '',
+        displayName: comp.displayName || '',
+        description: comp.description || '',
+        schemaName: comp.schemaName || '',
+        id: comp.id || '',
+        state: comp.state || '',
+        triggerQueries: [],
+        actions: [],
+        inputs: [],
+        outputs: [],
+        instructions: '',
+        modelDescription: '',
+        connectedBotSchema: ''
+      };
+
+      // GptComponent — extract instructions
+      if (comp.kind === 'GptComponent' && comp.metadata) {
+        entry.instructions = comp.metadata.instructions || '';
+        if (comp.metadata.gptCapabilities) entry.gptCapabilities = comp.metadata.gptCapabilities;
+        if (comp.metadata.aISettings) entry.aiModelSettings = comp.metadata.aISettings;
+        map._gptComponent = entry;
+      }
+
+      // GlobalVariableComponent
+      if (comp.kind === 'GlobalVariableComponent') {
+        entry.variableType = (comp.variableType && comp.variableType.type) || 'Unknown';
+        entry.scope = comp.scope || 'Conversation';
+      }
+
+      // DialogComponent — extract dialog flow info
+      if (comp.dialog) {
+        const dlg = comp.dialog;
+        entry.modelDescription = dlg.modelDescription || '';
+
+        // TaskDialog — connected agent
+        if (dlg.kind === 'TaskDialog' && dlg.action) {
+          if (dlg.action.kind === 'InvokeConnectedAgentTaskAction') {
+            entry.connectedBotSchema = dlg.action.botSchemaName || '';
+          }
+        }
+
+        // Inputs from dialog
+        if (dlg.inputs) {
+          dlg.inputs.forEach(inp => {
+            entry.inputs.push({
+              name: inp.propertyName || inp.name || '',
+              description: inp.description || '',
+              kind: inp.kind || '',
+              shouldPromptUser: !!inp.shouldPromptUser
+            });
+          });
+        }
+        if (dlg.inputType && dlg.inputType.properties) {
+          Object.keys(dlg.inputType.properties).forEach(k => {
+            const p = dlg.inputType.properties[k];
+            const existing = entry.inputs.find(i => i.name === k);
+            if (existing) {
+              existing.type = p.type || '';
+              if (!existing.description) existing.description = p.description || '';
+            } else {
+              entry.inputs.push({ name: k, type: p.type || '', description: p.description || '' });
+            }
+          });
+        }
+        if (dlg.outputType && dlg.outputType.properties) {
+          Object.keys(dlg.outputType.properties).forEach(k => {
+            const p = dlg.outputType.properties[k];
+            entry.outputs.push({ name: k, type: p.type || '', description: p.description || '' });
+          });
+        }
+
+        // beginDialog — extract trigger queries and actions
+        const bd = dlg.beginDialog;
+        if (bd) {
+          if (bd.intent && bd.intent.triggerQueries) {
+            entry.triggerQueries = bd.intent.triggerQueries;
+          }
+          if (bd.actions) {
+            entry.actions = extractActionSummary(bd.actions);
+          }
+        }
+      }
+
+      if (entry.schemaName) {
+        map[entry.schemaName] = entry;
+      }
+    });
+
+    // Connection references and connector definitions
+    if (parsed.connectionReferences) map._connectionReferences = parsed.connectionReferences;
+    if (parsed.connectorDefinitions) {
+      map._connectorDefinitions = parsed.connectorDefinitions.map(cd => ({
+        displayName: cd.displayName || '',
+        description: (cd.description || '').substring(0, 200),
+        isCustom: !!cd.isCustom,
+        operationCount: (cd.operations || []).length
+      }));
+    }
+
+    return map;
+  }
+
+  // Extract a flat summary of actions from a dialog flow
+  function extractActionSummary(actions) {
+    const result = [];
+    if (!Array.isArray(actions)) return result;
+    actions.forEach(a => {
+      const kind = a.kind || '';
+      const summary = { kind: kind };
+      if (kind === 'SendActivity') {
+        const msg = a.activity;
+        if (typeof msg === 'string') summary.text = msg.substring(0, 80);
+        else if (msg && msg.text) summary.text = (Array.isArray(msg.text) ? msg.text[0] : msg.text).substring(0, 80);
+      }
+      if (kind === 'Question') {
+        summary.variable = a.variable || '';
+        summary.prompt = (a.prompt || '').substring(0, 80);
+        summary.entity = a.entity || '';
+      }
+      if (kind === 'SetVariable' || kind === 'SetTextVariable') {
+        summary.variable = a.variable || '';
+      }
+      if (kind === 'BeginDialog' || kind === 'ReplaceDialog') {
+        summary.dialog = a.dialog || '';
+      }
+      if (kind === 'ConditionGroup') {
+        summary.conditionCount = (a.conditions || []).length;
+      }
+      if (kind === 'SearchAndSummarizeContent') {
+        summary.text = 'Search & Summarize';
+      }
+      result.push(summary);
+      // Recurse into condition branches for a brief summary
+      if (a.conditions) {
+        a.conditions.forEach(c => {
+          if (c.actions) result.push(...extractActionSummary(c.actions).map(s => ({ ...s, nested: true })));
+        });
+      }
+      if (a.elseActions) {
+        result.push(...extractActionSummary(a.elseActions).map(s => ({ ...s, nested: true })));
+      }
+    });
+    return result;
+  }
+
+  // Helper: resolve schemaName to friendly display name using botComponentMap
+  function friendlyTopicName(schemaName) {
+    if (!schemaName) return '';
+    const comp = botComponentMap[schemaName];
+    if (comp && comp.displayName) return comp.displayName;
+    // Fallback: last segment
+    return schemaName.split('.').pop();
+  }
+
+  // === EXTRACT BOTH FILES FROM ZIP ===
+  async function extractFromZip(arrayBuf) {
+    const bytes = new Uint8Array(arrayBuf);
+    const files = parseZipEntries(bytes);
+    let dialogTarget = null, ymlTarget = null;
+
+    for (const f of files) {
+      const name = f.name.toLowerCase();
+      if (!dialogTarget && (name === 'dialog.json' || name.endsWith('/dialog.json'))) dialogTarget = f;
+      if (!ymlTarget && (name === 'botcontent.yml' || name.endsWith('/botcontent.yml'))) ymlTarget = f;
+    }
+    if (!dialogTarget) {
+      for (const f of files) {
+        if (f.name.toLowerCase().endsWith('.json')) { dialogTarget = f; break; }
+      }
+    }
+    if (!dialogTarget) throw new Error('No dialog.json or .json file found in the ZIP archive.');
+
+    const jsonText = await decompressEntry(bytes, dialogTarget);
+    let ymlText = null;
+    if (ymlTarget) {
+      try { ymlText = await decompressEntry(bytes, ymlTarget); } catch(e) { /* ignore yml parse errors */ }
+    }
+    return { jsonText, ymlText };
+  }
+
+  async function decompressEntry(bytes, entry) {
+    const raw = bytes.slice(entry.dataOffset, entry.dataOffset + entry.compressedSize);
+    if (entry.compressionMethod === 0) return new TextDecoder().decode(raw);
+    if (entry.compressionMethod === 8) {
+      const ds = new DecompressionStream('deflate-raw');
+      const writer = ds.writable.getWriter();
+      const reader = ds.readable.getReader();
+      writer.write(raw);
+      writer.close();
+      const chunks = [];
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+      }
+      const totalLen = chunks.reduce((s, c) => s + c.length, 0);
+      const result = new Uint8Array(totalLen);
+      let offset = 0;
+      for (const c of chunks) { result.set(c, offset); offset += c.length; }
+      return new TextDecoder().decode(result);
+    }
+    throw new Error('Unsupported compression method: ' + entry.compressionMethod);
   }
 
   function formatTime(ts) {
@@ -1817,7 +2192,7 @@
     }
     if (vt === 'DynamicPlanReceived') {
       const v = act.value || {};
-      const steps = (v.steps || []).join(', ');
+      const steps = (v.steps || []).map(s => friendlyTopicName(s) || s).join(', ');
       return 'Plan received: ' + (steps || 'no steps') + (v.isFinalPlan ? ' (final)' : '');
     }
     if (vt === 'DynamicPlanReceivedDebug') {
@@ -1826,15 +2201,18 @@
     }
     if (vt === 'DynamicPlanStepTriggered') {
       const v = act.value || {};
-      return (v.taskDialogId || 'Step') + ' — ' + truncate(v.thought, 100);
+      const name = friendlyTopicName(v.taskDialogId) || v.taskDialogId || 'Step';
+      return name + ' — ' + truncate(v.thought, 100);
     }
     if (vt === 'DynamicPlanStepBindUpdate') {
       const v = act.value || {};
-      return 'Bind arguments for ' + (v.taskDialogId || 'step');
+      const name = friendlyTopicName(v.taskDialogId) || v.taskDialogId || 'step';
+      return 'Bind arguments for ' + name;
     }
     if (vt === 'DynamicPlanStepFinished') {
       const v = act.value || {};
-      return (v.taskDialogId || 'Step') + ' finished (' + (v.state || '') + ')';
+      const name = friendlyTopicName(v.taskDialogId) || v.taskDialogId || 'Step';
+      return name + ' finished (' + (v.state || '') + ')';
     }
     if (vt === 'DynamicPlanFinished') {
       const v = act.value || {};
@@ -1849,7 +2227,7 @@
     if (vt === 'DialogTracingInfo') {
       const actions = (act.value && act.value.actions) || [];
       if (actions.length === 0) return 'Dialog trace (no actions)';
-      return 'Dialog trace: ' + actions.map(a => a.actionType + ' (' + a.topicId.split('.').pop() + ')').join(', ');
+      return 'Dialog trace: ' + actions.map(a => a.actionType + ' (' + (friendlyTopicName(a.topicId) || a.topicId.split('.').pop()) + ')').join(', ');
     }
     if (act.name === 'GenerativeAnswersSupportData') {
       const v = act.value || {};
@@ -1930,22 +2308,56 @@
     // Step Triggered
     if (vt === 'DynamicPlanStepTriggered') {
       const v = act.value || {};
+      const comp = botComponentMap[v.taskDialogId];
       html += '<div class="detail-section"><h4>Step Details</h4><div class="detail-content">';
+      if (comp && comp.displayName) {
+        html += '<div class="kv-row"><span class="kv-key">Topic Name</span><span class="kv-val" style="font-weight:600;color:var(--accent);">' + escapeHtml(comp.displayName) + '</span></div>';
+      }
       html += '<div class="kv-row"><span class="kv-key">Task/Agent</span><span class="kv-val"><code>' + escapeHtml(v.taskDialogId || '') + '</code></span></div>';
       html += '<div class="kv-row"><span class="kv-key">Step ID</span><span class="kv-val"><code>' + escapeHtml(v.stepId || '') + '</code></span></div>';
       html += '<div class="kv-row"><span class="kv-key">State</span><span class="kv-val">' + escapeHtml(v.state || '') + '</span></div>';
       html += '<div class="kv-row"><span class="kv-key">Type</span><span class="kv-val">' + escapeHtml(v.type || '') + '</span></div>';
       html += '<div class="kv-row"><span class="kv-key">Plan ID</span><span class="kv-val"><code>' + escapeHtml(v.planIdentifier || '') + '</code></span></div>';
+      if (comp && comp.description) {
+        html += '<div class="kv-row"><span class="kv-key">Description</span><span class="kv-val" style="font-style:italic;">' + escapeHtml(comp.description) + '</span></div>';
+      }
+      if (comp && comp.connectedBotSchema) {
+        html += '<div class="kv-row"><span class="kv-key">Connected Bot</span><span class="kv-val"><code>' + escapeHtml(comp.connectedBotSchema) + '</code></span></div>';
+      }
       html += '</div></div>';
       if (v.thought) {
         html += '<div class="detail-section"><h4>AI Thought / Reasoning</h4><div class="detail-content" style="border-left:3px solid var(--orange);padding-left:12px;font-style:italic;">' + escapeHtml(v.thought) + '</div></div>';
+      }
+      // Trigger phrases from botContent.yml
+      if (comp && comp.triggerQueries && comp.triggerQueries.length > 0) {
+        html += '<div class="detail-section"><h4>Trigger Phrases (from Agent Definition)</h4><div class="detail-content"><div class="trigger-phrase-box"><div class="tp-list">';
+        comp.triggerQueries.forEach(tq => { html += '<span class="tp-item">' + escapeHtml(tq) + '</span>'; });
+        html += '</div></div></div></div>';
+      }
+      // Authored flow from botContent.yml
+      if (comp && comp.actions && comp.actions.length > 0) {
+        html += '<div class="detail-section"><h4>Authored Flow (from Agent Definition)</h4><div class="detail-content"><div class="topic-action-flow">';
+        comp.actions.forEach((a, ai) => {
+          if (ai > 0) html += '<span class="topic-action-arrow">&#9654;</span>';
+          let label = a.kind;
+          if (a.text) label += ': ' + a.text;
+          else if (a.prompt) label += ': ' + a.prompt;
+          else if (a.dialog) label += ' → ' + friendlyTopicName(a.dialog);
+          else if (a.variable) label += ' (' + a.variable + ')';
+          html += '<span class="topic-action-node' + (a.nested ? ' style="opacity:0.6"' : '') + '">' + escapeHtml(label) + '</span>';
+        });
+        html += '</div></div></div>';
       }
     }
 
     // Step Bind
     if (vt === 'DynamicPlanStepBindUpdate') {
       const v = act.value || {};
+      const comp = botComponentMap[v.taskDialogId];
       html += '<div class="detail-section"><h4>Binding Details</h4><div class="detail-content">';
+      if (comp && comp.displayName) {
+        html += '<div class="kv-row"><span class="kv-key">Topic Name</span><span class="kv-val" style="font-weight:600;color:var(--accent);">' + escapeHtml(comp.displayName) + '</span></div>';
+      }
       html += '<div class="kv-row"><span class="kv-key">Task/Agent</span><span class="kv-val"><code>' + escapeHtml(v.taskDialogId || '') + '</code></span></div>';
       html += '<div class="kv-row"><span class="kv-key">Step ID</span><span class="kv-val"><code>' + escapeHtml(v.stepId || '') + '</code></span></div>';
       if (v.autoFilledArguments) {
@@ -1965,7 +2377,11 @@
     // Step Finished
     if (vt === 'DynamicPlanStepFinished') {
       const v = act.value || {};
+      const comp = botComponentMap[v.taskDialogId];
       html += '<div class="detail-section"><h4>Step Result</h4><div class="detail-content">';
+      if (comp && comp.displayName) {
+        html += '<div class="kv-row"><span class="kv-key">Topic Name</span><span class="kv-val" style="font-weight:600;color:var(--accent);">' + escapeHtml(comp.displayName) + '</span></div>';
+      }
       html += '<div class="kv-row"><span class="kv-key">Task/Agent</span><span class="kv-val"><code>' + escapeHtml(v.taskDialogId || '') + '</code></span></div>';
       const stateColor = (v.state === 'completed') ? 'var(--green)' : (v.state === 'failed' || v.state === 'error' || v.state === 'faulted') ? 'var(--red)' : 'var(--text)';
       html += '<div class="kv-row"><span class="kv-key">State</span><span class="kv-val" style="color:' + stateColor + ';font-weight:600;">' + escapeHtml(v.state || '') + '</span></div>';
@@ -2031,7 +2447,12 @@
           html += '<div style="margin-bottom:8px;padding:8px;background:var(--bg);border-radius:4px;">';
           html += '<div class="kv-row"><span class="kv-key">Action</span><span class="kv-val"><strong>' + escapeHtml(a.actionType || '') + '</strong></span></div>';
           html += '<div class="kv-row"><span class="kv-key">Action ID</span><span class="kv-val"><code>' + escapeHtml(a.actionId || '') + '</code></span></div>';
-          html += '<div class="kv-row"><span class="kv-key">Topic</span><span class="kv-val"><code>' + escapeHtml(a.topicId || '') + '</code></span></div>';
+          const topicFriendly = friendlyTopicName(a.topicId);
+          if (topicFriendly && topicFriendly !== (a.topicId || '').split('.').pop()) {
+            html += '<div class="kv-row"><span class="kv-key">Topic</span><span class="kv-val"><strong style="color:var(--accent);">' + escapeHtml(topicFriendly) + '</strong> <code class="topic-schema-code">' + escapeHtml(a.topicId || '') + '</code></span></div>';
+          } else {
+            html += '<div class="kv-row"><span class="kv-key">Topic</span><span class="kv-val"><code>' + escapeHtml(a.topicId || '') + '</code></span></div>';
+          }
           html += '<div class="kv-row"><span class="kv-key">Trigger</span><span class="kv-val">' + escapeHtml(a.triggerId || '') + '</span></div>';
           if (a.exception) {
             html += '<div class="kv-row"><span class="kv-key" style="color:var(--red);">Exception</span><span class="kv-val" style="color:var(--red);">' + escapeHtml(a.exception) + '</span></div>';
@@ -2219,6 +2640,8 @@
     flowPanel.classList.add('hidden');
     variablesPanel.innerHTML = '';
     variablesPanel.classList.add('hidden');
+    agentDefPanel.innerHTML = '';
+    agentDefPanel.classList.add('hidden');
     depLegend.innerHTML = '';
     depLegend.classList.add('hidden');
     batchDashboard.innerHTML = '';
@@ -2236,6 +2659,8 @@
     fileInput.value = '';
     currentFileName = '';
     lastLoadedData = null;
+    botContentData = null;
+    botComponentMap = {};
     if (scrollCleanup) { scrollCleanup(); scrollCleanup = null; }
     if (minimapCleanup) { minimapCleanup(); minimapCleanup = null; }
     minimapEl.classList.add('hidden');
@@ -4497,6 +4922,125 @@
       });
     })();
 
+    // === #5: AGENT DEFINITION PANEL (from botContent.yml) ===
+    (function initAgentDefPanel() {
+      if (!botContentData || Object.keys(botComponentMap).length === 0) return;
+
+      agentDefPanel.classList.remove('hidden');
+      let collapsed = true; // start collapsed
+
+      const entity = botComponentMap._entity || {};
+      const gpt = botComponentMap._gptComponent || null;
+      const connDefs = botComponentMap._connectorDefinitions || [];
+
+      let html = '';
+
+      // Agent Overview
+      html += '<div class="agent-def-section"><h4>Agent Overview</h4><div class="agent-def-settings">';
+      if (entity.schemaName) html += '<div class="agent-def-chip"><span class="chip-label">Schema:</span>' + escapeHtml(entity.schemaName) + '</div>';
+      if (entity.authenticationMode) html += '<div class="agent-def-chip"><span class="chip-label">Auth:</span>' + escapeHtml(entity.authenticationMode) + '</div>';
+      if (entity.template) html += '<div class="agent-def-chip"><span class="chip-label">Template:</span>' + escapeHtml(entity.template) + '</div>';
+      if (entity.recognizer && entity.recognizer.kind) html += '<div class="agent-def-chip"><span class="chip-label">Recognizer:</span>' + escapeHtml(entity.recognizer.kind) + '</div>';
+      html += '</div></div>';
+
+      // AI Settings
+      if (entity.aiSettings && Object.keys(entity.aiSettings).length > 0) {
+        html += '<div class="agent-def-section"><h4>AI Settings</h4><div class="agent-def-settings">';
+        const ai = entity.aiSettings;
+        if (ai.useModelKnowledge !== undefined) html += '<div class="agent-def-chip ' + (ai.useModelKnowledge ? 'chip-on' : 'chip-off') + '"><span class="chip-label">Model Knowledge:</span>' + (ai.useModelKnowledge ? 'ON' : 'OFF') + '</div>';
+        if (ai.isFileAnalysisEnabled !== undefined) html += '<div class="agent-def-chip ' + (ai.isFileAnalysisEnabled ? 'chip-on' : 'chip-off') + '"><span class="chip-label">File Analysis:</span>' + (ai.isFileAnalysisEnabled ? 'ON' : 'OFF') + '</div>';
+        if (ai.isSemanticSearchEnabled !== undefined) html += '<div class="agent-def-chip ' + (ai.isSemanticSearchEnabled ? 'chip-on' : 'chip-off') + '"><span class="chip-label">Semantic Search:</span>' + (ai.isSemanticSearchEnabled ? 'ON' : 'OFF') + '</div>';
+        if (ai.contentModeration) html += '<div class="agent-def-chip"><span class="chip-label">Content Moderation:</span>' + escapeHtml(ai.contentModeration) + '</div>';
+        if (ai.optInUseLatestModels !== undefined) html += '<div class="agent-def-chip ' + (ai.optInUseLatestModels ? 'chip-on' : 'chip-off') + '"><span class="chip-label">Latest Models:</span>' + (ai.optInUseLatestModels ? 'ON' : 'OFF') + '</div>';
+        html += '</div></div>';
+      }
+
+      // Agent Instructions
+      if (gpt && gpt.instructions) {
+        html += '<div class="agent-def-section"><h4>Agent Instructions (System Prompt)</h4>';
+        html += '<div class="agent-def-instructions">' + escapeHtml(gpt.instructions) + '</div></div>';
+      }
+
+      // GPT Capabilities
+      if (gpt && gpt.gptCapabilities) {
+        html += '<div class="agent-def-section"><h4>GPT Capabilities</h4><div class="agent-def-settings">';
+        Object.entries(gpt.gptCapabilities).forEach(([k, v]) => {
+          html += '<div class="agent-def-chip ' + (v ? 'chip-on' : 'chip-off') + '"><span class="chip-label">' + escapeHtml(k) + ':</span>' + (v ? 'ON' : 'OFF') + '</div>';
+        });
+        html += '</div></div>';
+      }
+
+      // Topics Map
+      const topics = Object.keys(botComponentMap).filter(k => !k.startsWith('_') && botComponentMap[k].kind === 'DialogComponent');
+      if (topics.length > 0) {
+        html += '<div class="agent-def-section"><h4>Topics (' + topics.length + ')</h4>';
+        html += '<table class="topic-map-table"><thead><tr><th>Name</th><th>Schema</th><th>Type</th><th>Trigger Phrases</th><th>Actions</th></tr></thead><tbody>';
+        topics.forEach(schemaName => {
+          const comp = botComponentMap[schemaName];
+          const triggerKind = comp.triggerQueries.length > 0 ? 'Intent' : (comp.connectedBotSchema ? 'Connected' : 'System');
+          html += '<tr>';
+          html += '<td><strong>' + escapeHtml(comp.displayName) + '</strong>';
+          if (comp.description) html += '<br><span style="font-size:10px;color:var(--text-muted);">' + escapeHtml(comp.description.substring(0, 100)) + '</span>';
+          html += '</td>';
+          html += '<td><code class="topic-schema-code">' + escapeHtml(schemaName) + '</code></td>';
+          html += '<td>' + escapeHtml(triggerKind) + '</td>';
+          html += '<td>';
+          if (comp.triggerQueries.length > 0) {
+            html += '<div class="topic-trigger-list">';
+            comp.triggerQueries.slice(0, 10).forEach(tq => { html += '<span class="topic-trigger-item">' + escapeHtml(tq) + '</span>'; });
+            if (comp.triggerQueries.length > 10) html += '<span style="font-size:10px;color:var(--text-muted);"> +' + (comp.triggerQueries.length - 10) + ' more</span>';
+            html += '</div>';
+          } else {
+            html += '<span style="color:var(--text-muted);font-size:11px;">—</span>';
+          }
+          html += '</td>';
+          html += '<td>';
+          if (comp.actions.length > 0) {
+            html += '<div class="topic-action-flow">';
+            comp.actions.filter(a => !a.nested).slice(0, 6).forEach((a, ai) => {
+              if (ai > 0) html += '<span class="topic-action-arrow">&#9654;</span>';
+              html += '<span class="topic-action-node">' + escapeHtml(a.kind) + '</span>';
+            });
+            if (comp.actions.filter(a => !a.nested).length > 6) html += '<span style="font-size:10px;color:var(--text-muted);"> +more</span>';
+            html += '</div>';
+          } else {
+            html += '<span style="color:var(--text-muted);font-size:11px;">—</span>';
+          }
+          html += '</td>';
+          html += '</tr>';
+        });
+        html += '</tbody></table></div>';
+      }
+
+      // Global Variables
+      const globalVars = Object.keys(botComponentMap).filter(k => !k.startsWith('_') && botComponentMap[k].kind === 'GlobalVariableComponent');
+      if (globalVars.length > 0) {
+        html += '<div class="agent-def-section"><h4>Global Variables</h4><div class="agent-def-settings">';
+        globalVars.forEach(k => {
+          const gv = botComponentMap[k];
+          html += '<div class="agent-def-chip"><span class="chip-label">' + escapeHtml(gv.displayName) + ':</span>' + escapeHtml(gv.variableType || 'Unknown') + ' (' + escapeHtml(gv.scope || '') + ')</div>';
+        });
+        html += '</div></div>';
+      }
+
+      // Connector Definitions
+      if (connDefs.length > 0) {
+        html += '<div class="agent-def-section"><h4>Connectors</h4><div class="agent-def-settings">';
+        connDefs.forEach(cd => {
+          html += '<div class="agent-def-chip"><span class="chip-label">' + escapeHtml(cd.displayName) + ':</span>' + cd.operationCount + ' operations' + (cd.isCustom ? ' (custom)' : '') + '</div>';
+        });
+        html += '</div></div>';
+      }
+
+      const componentCount = Object.keys(botComponentMap).filter(k => !k.startsWith('_')).length;
+      agentDefPanel.innerHTML = '<div class="agent-def-header"><h3>&#128209; Agent Definition (botContent.yml)</h3><span style="font-size:12px;color:var(--text-muted);">' + componentCount + ' components</span></div><div class="agent-def-body collapsed-body" id="agent-def-body">' + html + '</div>';
+
+      agentDefPanel.querySelector('.agent-def-header').addEventListener('click', () => {
+        collapsed = !collapsed;
+        agentDefPanel.querySelector('#agent-def-body').classList.toggle('collapsed-body', collapsed);
+      });
+    })();
+
     // === AUTO-EXPAND ERRORS / COLLAPSE ALL ===
     if (issues.length > 0) {
       // Auto-expand steps that have issues
@@ -4690,7 +5234,7 @@
     clone.querySelectorAll('.dep-lines-svg').forEach(el => el.remove());
     clone.querySelectorAll('.resize-handle').forEach(el => el.remove());
     // Ensure new panels are visible in export
-    clone.querySelectorAll('.waterfall-panel,.knowledge-panel,.citation-panel,.flow-panel,.variables-panel,.dep-legend').forEach(el => {
+    clone.querySelectorAll('.waterfall-panel,.knowledge-panel,.citation-panel,.flow-panel,.variables-panel,.agent-def-panel,.dep-legend').forEach(el => {
       el.classList.remove('hidden');
       el.querySelectorAll('.collapsed-body').forEach(b => b.classList.remove('collapsed-body'));
     });
@@ -4812,7 +5356,7 @@ ${toggleScript}
       try {
         if (ext === 'zip') {
           const arrayBuf = await file.arrayBuffer();
-          const jsonText = await extractJsonFromZip(arrayBuf);
+          const { jsonText } = await extractFromZip(arrayBuf);
           dataB = JSON.parse(jsonText);
         } else {
           const text = await file.text();
