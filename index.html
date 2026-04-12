@@ -1168,6 +1168,15 @@
   .topic-action-node { padding: 1px 6px; background: var(--surface2); border-radius: 3px; border: 1px solid var(--border); }
   .topic-action-arrow { color: var(--text-muted); font-size: 9px; }
   .topic-schema-code { font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; font-size: 10px; color: var(--text-muted); }
+  .arg-badge { display: inline-block; font-size: 9px; padding: 1px 5px; border-radius: 3px; margin-left: 6px; vertical-align: middle; font-weight: 600; letter-spacing: 0.3px; }
+  .arg-badge.auto { background: rgba(46,160,67,0.15); color: var(--green); border: 1px solid rgba(46,160,67,0.3); }
+  .arg-badge.manual { background: rgba(139,148,158,0.15); color: var(--text-muted); border: 1px solid rgba(139,148,158,0.3); }
+  .tool-icon { width: 18px; height: 18px; border-radius: 3px; vertical-align: middle; margin-right: 6px; }
+  .tool-kind-badge { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+  .tool-kind-badge.connected { background: rgba(31,111,200,0.15); color: var(--accent); border: 1px solid rgba(31,111,200,0.3); }
+  .tool-kind-badge.external { background: rgba(130,80,223,0.15); color: #8250df; border: 1px solid rgba(130,80,223,0.3); }
+  .tool-kind-badge.topic { background: rgba(46,160,67,0.15); color: var(--green); border: 1px solid rgba(46,160,67,0.3); }
+  .tool-kind-badge.other { background: rgba(139,148,158,0.15); color: var(--text-muted); border: 1px solid rgba(139,148,158,0.3); }
   .trigger-phrase-box { margin-top: 6px; padding: 6px 10px; background: var(--surface2); border-radius: 4px; border: 1px solid var(--border); }
   .trigger-phrase-box .tp-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
   .trigger-phrase-box .tp-list { display: flex; flex-wrap: wrap; gap: 3px; }
@@ -1946,10 +1955,14 @@
         const dlg = comp.dialog;
         entry.modelDescription = dlg.modelDescription || '';
 
-        // TaskDialog — connected agent
+        // TaskDialog — connected or external agent
         if (dlg.kind === 'TaskDialog' && dlg.action) {
           if (dlg.action.kind === 'InvokeConnectedAgentTaskAction') {
             entry.connectedBotSchema = dlg.action.botSchemaName || '';
+            entry.invocationType = 'connected';
+          } else if (dlg.action.kind === 'InvokeExternalAgentTaskAction') {
+            entry.connectionReference = dlg.action.connectionReference || '';
+            entry.invocationType = 'external';
           }
         }
 
@@ -2285,13 +2298,20 @@
       if (v.toolDefinitions && v.toolDefinitions.length) {
         html += '</div></div><div class="detail-section"><h4>Tool Definitions</h4><div class="detail-content">';
         v.toolDefinitions.forEach(td => {
+          const kindClass = (td.toolKind === 'InvokeConnectedAgentTaskAction') ? 'connected' : (td.toolKind === 'InvokeExternalAgentTaskAction') ? 'external' : (td.toolKind === 'AdaptiveDialog') ? 'topic' : 'other';
+          const kindLabel = (td.toolKind === 'InvokeConnectedAgentTaskAction') ? 'Connected Agent' : (td.toolKind === 'InvokeExternalAgentTaskAction') ? 'External Agent (Foundry)' : (td.toolKind === 'AdaptiveDialog') ? 'Topic' : (td.toolKind || 'Unknown');
           html += '<div style="margin-bottom:8px;padding:8px;background:var(--bg);border-radius:4px;">';
-          html += '<div class="kv-row"><span class="kv-key">Display Name</span><span class="kv-val"><strong>' + escapeHtml(td.displayName || '') + '</strong></span></div>';
+          html += '<div class="kv-row"><span class="kv-key">Display Name</span><span class="kv-val">';
+          if (td.iconUri) html += '<img class="tool-icon" src="' + escapeHtml(td.iconUri) + '" alt="" onerror="this.style.display=\'none\'">';
+          html += '<strong>' + escapeHtml(td.displayName || '') + '</strong></span></div>';
           html += '<div class="kv-row"><span class="kv-key">Description</span><span class="kv-val">' + escapeHtml(td.description || '') + '</span></div>';
           html += '<div class="kv-row"><span class="kv-key">Schema</span><span class="kv-val"><code>' + escapeHtml(td.schemaName || '') + '</code></span></div>';
-          html += '<div class="kv-row"><span class="kv-key">Kind</span><span class="kv-val">' + escapeHtml(td.toolKind || '') + '</span></div>';
+          html += '<div class="kv-row"><span class="kv-key">Kind</span><span class="kv-val"><span class="tool-kind-badge ' + kindClass + '">' + escapeHtml(kindLabel) + '</span></span></div>';
+          if (td.inputs && td.inputs.length) {
+            html += '<div class="kv-row"><span class="kv-key">Inputs</span><span class="kv-val">' + td.inputs.map(inp => escapeHtml(inp.propertyName || inp.name) + ' <span style="color:var(--text-muted);font-size:11px;">(' + escapeHtml((inp.type && inp.type.$kind) || '') + ')</span>').join(', ') + '</span></div>';
+          }
           if (td.outputs && td.outputs.length) {
-            html += '<div class="kv-row"><span class="kv-key">Outputs</span><span class="kv-val">' + td.outputs.map(o => escapeHtml(o.name)).join(', ') + '</span></div>';
+            html += '<div class="kv-row"><span class="kv-key">Outputs</span><span class="kv-val">' + td.outputs.map(o => escapeHtml(o.propertyName || o.name) + ' <span style="color:var(--text-muted);font-size:11px;">(' + escapeHtml((o.type && o.type.$kind) || '') + ')</span>').join(', ') + '</span></div>';
           }
           html += '</div>';
         });
@@ -2329,6 +2349,14 @@
       if (comp && comp.connectedBotSchema) {
         html += '<div class="kv-row"><span class="kv-key">Connected Bot</span><span class="kv-val"><code>' + escapeHtml(comp.connectedBotSchema) + '</code></span></div>';
       }
+      if (comp && comp.invocationType) {
+        const invLabel = comp.invocationType === 'external' ? 'External Agent (Azure Foundry)' : 'Connected Agent (Copilot)';
+        const invClass = comp.invocationType === 'external' ? 'external' : 'connected';
+        html += '<div class="kv-row"><span class="kv-key">Invocation Type</span><span class="kv-val"><span class="tool-kind-badge ' + invClass + '">' + invLabel + '</span></span></div>';
+      }
+      if (comp && comp.connectionReference) {
+        html += '<div class="kv-row"><span class="kv-key">Connection Ref</span><span class="kv-val"><code style="font-size:10px;">' + escapeHtml(comp.connectionReference) + '</code></span></div>';
+      }
       html += '</div></div>';
       if (v.thought) {
         html += '<div class="detail-section"><h4>AI Thought / Reasoning</h4><div class="detail-content" style="border-left:3px solid var(--orange);padding-left:12px;font-style:italic;">' + escapeHtml(v.thought) + '</div></div>';
@@ -2365,15 +2393,14 @@
       }
       html += '<div class="kv-row"><span class="kv-key">Task/Agent</span><span class="kv-val"><code>' + escapeHtml(v.taskDialogId || '') + '</code></span></div>';
       html += '<div class="kv-row"><span class="kv-key">Step ID</span><span class="kv-val"><code>' + escapeHtml(v.stepId || '') + '</code></span></div>';
-      if (v.autoFilledArguments) {
-        html += '<div class="kv-row"><span class="kv-key">Auto-filled</span><span class="kv-val">' + escapeHtml(v.autoFilledArguments.join(', ')) + '</span></div>';
-      }
       html += '</div></div>';
       if (v.arguments) {
+        const autoFilled = v.autoFilledArguments || [];
         html += '<div class="detail-section"><h4>Arguments</h4><div class="detail-content">';
         for (const [k, val] of Object.entries(v.arguments)) {
+          const isAuto = autoFilled.includes(k);
           const display = typeof val === 'object' ? JSON.stringify(val, null, 2) : String(val);
-          html += '<div class="kv-row"><span class="kv-key">' + escapeHtml(k) + '</span><span class="kv-val">' + simpleMarkdown(display) + '</span></div>';
+          html += '<div class="kv-row"><span class="kv-key">' + escapeHtml(k) + '<span class="arg-badge ' + (isAuto ? 'auto' : 'manual') + '">' + (isAuto ? 'AUTO' : 'MANUAL') + '</span></span><span class="kv-val">' + simpleMarkdown(display) + '</span></div>';
         }
         html += '</div></div>';
       }
@@ -2988,7 +3015,7 @@
     activities.forEach(a => {
       if (a.valueType === 'DynamicPlanReceived' && a.value && a.value.toolDefinitions) {
         a.value.toolDefinitions.forEach(td => {
-          if (td.toolKind === 'InvokeConnectedAgentTaskAction') {
+          if (td.toolKind === 'InvokeConnectedAgentTaskAction' || td.toolKind === 'InvokeExternalAgentTaskAction') {
             _connAgentNames[td.schemaName] = td.displayName || td.schemaName.split('.').pop();
           }
         });
@@ -4465,7 +4492,7 @@
       const connAgentNames = {};
       planReceiveds.forEach(a => {
         (a.value.toolDefinitions || []).forEach(td => {
-          if (td.toolKind === 'InvokeConnectedAgentTaskAction') {
+          if (td.toolKind === 'InvokeConnectedAgentTaskAction' || td.toolKind === 'InvokeExternalAgentTaskAction') {
             connAgentNames[td.schemaName] = td.displayName || td.schemaName.split('.').pop();
           }
         });
