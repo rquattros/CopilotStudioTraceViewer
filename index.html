@@ -3447,11 +3447,15 @@
         }
       }
 
-      // --- TURN SEPARATOR: User messages break out of any open plans ---
+      // --- TURN SEPARATOR: User messages break out of plans without explicit finish ---
       if (cls.cat === 'user-message' && planStack.length > 0) {
-        // Force-close all open plan groups (mark as "open-ended")
-        while (planStack.length > 0) {
-          const p = planStack.pop();
+        // Only close plans that have NO explicit DynamicPlanFinished
+        const toClose = [];
+        for (let i = planStack.length - 1; i >= 0; i--) {
+          if (!plansWithExplicitFinish.has(planStack[i].planId)) toClose.push(i);
+        }
+        toClose.forEach(idx => {
+          const p = planStack.splice(idx, 1)[0];
           const groupEl = planGroupMap[p.planId];
           if (groupEl) {
             const statusEl = groupEl.querySelector('.plan-status');
@@ -3467,7 +3471,7 @@
             }
           }
           delete openPlanContainers[p.planId];
-        }
+        });
       }
 
       // --- PLAN OPEN ---
