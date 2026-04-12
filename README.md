@@ -76,6 +76,16 @@ You can upload either the `.zip` or the extracted `dialog.json` directly into th
 - **Responsive layout** — works on desktop and mobile. On small screens, the chat pane stacks below the trace.
 - **No dependencies** — pure HTML, CSS, and JavaScript in a single file. Works offline.
 
+## Known Limitations
+
+### Variable Tracker — Connected Agent Topics
+
+When a connected agent invokes a topic, some variables declared in `DynamicPlanReceived.toolDefinitions` (e.g. `isAnsweredByTopic`, `questionAnswer`) may show as **unset** in the Variable Tracker. This happens because:
+
+- The `DynamicPlanStepBindUpdate` for connected agent topics can have empty `arguments: {}`, so input variable bindings are not available in the trace.
+- Variables like `isAnsweredByTopic` and `questionAnswer` only appear in the bot's message text (e.g. *"the variable isAnsweredByTopic is: Yes"*), not in any structured trace field. Parsing natural language to extract variable values would be unreliable and is intentionally not attempted.
+- **Output variables** (e.g. `outputVariable`) **are** recovered from `DynamicPlanStepFinished.observation` and shown with a *(step completed)* label in the tracker tooltip.
+
 ## Browser Support
 
 Requires a modern browser with support for:
