@@ -2244,7 +2244,7 @@
     }
     if (vt === 'DynamicPlanFinished') {
       const v = act.value || {};
-      return 'Plan ' + (v.planId || '').substring(0,8) + '... ' + (v.wasCancelled ? 'CANCELLED' : 'completed');
+      return 'Plan ' + (v.planId || '') + ' ' + (v.wasCancelled ? 'CANCELLED' : 'completed');
     }
     if (vt === 'UniversalSearchToolTraceData') {
       const v = act.value || {};
@@ -3262,6 +3262,14 @@
       }
     });
 
+    // Build set of plans that have an explicit DynamicPlanFinished event
+    const plansWithExplicitFinish = new Set();
+    activities.forEach(act => {
+      if (act.valueType === 'DynamicPlanFinished' && act.value && act.value.planId) {
+        plansWithExplicitFinish.add(act.value.planId);
+      }
+    });
+
     // === SECOND PASS: Build the tree ===
     timeline.innerHTML = '';
 
@@ -3482,7 +3490,7 @@
           <span class="plan-icon">&#9654;</span>
           <span class="step-badge badge-plan">PLAN</span>
           <span class="plan-pill ${colorCls}" title="${escapeHtml(planId)}">${escapeHtml(displayName)}</span>
-          <span class="plan-id">${escapeHtml(planId.substring(0,8))}...</span>
+          <span class="plan-id">${escapeHtml(planId)}</span>
           ${ancestry ? '<span class="plan-ancestry">' + escapeHtml(ancestry) + '</span>' : ''}
           <span class="plan-status running">running</span>
           <span class="plan-step-count"></span>
@@ -3564,9 +3572,10 @@
       // --- PLAN CLOSE via DynamicPlanStepFinished with state=completed ---
       // Some plans (especially root plans) never get a DynamicPlanFinished event.
       // They are closed implicitly when their main step finishes with state "completed".
+      // But if the plan has an explicit DynamicPlanFinished later, do NOT auto-close here.
       if (vt === 'DynamicPlanStepFinished' && act.value && act.value.state === 'completed') {
         const planId = act.value.planIdentifier;
-        if (planId && openPlanContainers[planId]) {
+        if (planId && openPlanContainers[planId] && !plansWithExplicitFinish.has(planId)) {
           // Place this step inside the plan
           const container = openPlanContainers[planId];
           const stepEl = createStepEl(act, cls, title, planId, activityIndex);
