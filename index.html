@@ -4342,6 +4342,26 @@
         if (snapshots.length > 0) varEvolution[key] = snapshots;
       });
 
+      // 4. Harvest output values from DynamicPlanStepFinished.observation
+      // When a step completes, its observation contains the actual output variable values
+      let finIdx = 0;
+      activities.forEach(a => {
+        if (a.valueType === 'DynamicPlanStepFinished' && a.value && a.value.observation) {
+          const obs = a.value.observation;
+          const taskId = a.value.taskDialogId || '';
+          // Match observation keys to declared output variables for this task
+          Object.keys(obs).forEach(obsKey => {
+            const declKey = taskId + '::' + obsKey;
+            const decl = varDeclarations[declKey];
+            if (decl && decl.direction === 'output') {
+              if (!varEvolution[declKey]) varEvolution[declKey] = [];
+              varEvolution[declKey].push({ idx: finIdx, value: obs[obsKey], auto: false, source: 'completed' });
+            }
+          });
+        }
+        finIdx++;
+      });
+
       // Also track "undeclared" arguments that appear in BindUpdates but aren't in toolDefinitions  
       // These are plan-level arguments like "Task" for connected agents
       const undeclaredVars = {};
@@ -4420,7 +4440,7 @@
                 if (si > 0) html += '<span class="var-arrow">&#8594;</span>';
                 const changed = si > 0 && JSON.stringify(snap.value) !== JSON.stringify(prevVal);
                 const cls = changed ? ' var-changed' : '';
-                html += '<span class="var-snapshot' + cls + '" title="Activity #' + snap.idx + (snap.auto ? ' (auto-filled)' : '') + '">';
+                html += '<span class="var-snapshot' + cls + '" title="Activity #' + snap.idx + (snap.auto ? ' (auto-filled)' : '') + (snap.source === 'completed' ? ' (step completed)' : '') + '">';
                 html += '<span class="var-step-idx">#' + snap.idx + '</span> ';
                 html += '<span class="var-val">' + formatVal(snap.value) + '</span>';
                 html += '</span>';
