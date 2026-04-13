@@ -1153,6 +1153,33 @@
   .var-state-kv { display: flex; gap: 8px; flex-wrap: wrap; }
   .var-state-chip { font-size: 11px; font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; padding: 2px 8px; background: var(--surface2); border-radius: 4px; border: 1px solid var(--border); }
 
+  /* === Tools Summary Panel === */
+  .tools-panel {
+    margin: 16px 0; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; overflow: hidden;
+  }
+  .tools-panel.hidden { display: none; }
+  .tools-header {
+    padding: 10px 16px; background: var(--surface2); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; cursor: pointer;
+  }
+  .tools-header h3 { font-size: 14px; color: var(--heading); }
+  .tools-body { padding: 12px; }
+  .tools-body.collapsed-body { display: none; }
+  .tool-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; margin-bottom: 8px; }
+  .tool-card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .tool-card-name { font-weight: 600; color: var(--heading); font-size: 13px; }
+  .tool-card-kind { font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 600; color: #fff; }
+  .tool-card-kind.flow { background: #7c3aed; }
+  .tool-card-kind.connected { background: #0ea5e9; }
+  .tool-card-kind.external { background: #f59e0b; }
+  .tool-card-kind.connector { background: #10b981; }
+  .tool-card-kind.topic { background: #6366f1; }
+  .tool-card-kind.other { background: #6b7280; }
+  .tool-card-stats { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11px; color: var(--text-muted); }
+  .tool-card-stat { display: flex; align-items: center; gap: 4px; }
+  .tool-card-stat .stat-val { font-weight: 600; color: var(--text); }
+
   /* === Agent Definition Panel (botContent.yml) === */
   .agent-def-panel { margin: 16px 0; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
   .agent-def-panel.hidden { display: none; }
@@ -1423,6 +1450,7 @@
         <div id="citation-panel" class="citation-panel hidden"></div>
         <div id="flow-panel" class="flow-panel hidden"></div>
         <div id="variables-panel" class="variables-panel hidden"></div>
+        <div id="tools-panel" class="tools-panel hidden"></div>
         <div id="agent-def-panel" class="agent-def-panel hidden"></div>
         <div class="filter-bar" id="filter-bar"></div>
         <div id="breadcrumb-bar" class="breadcrumb-bar empty"></div>
@@ -1458,6 +1486,7 @@
   const citationPanel = document.getElementById('citation-panel');
   const flowPanel = document.getElementById('flow-panel');
   const variablesPanel = document.getElementById('variables-panel');
+  const toolsPanel = document.getElementById('tools-panel');
   const agentDefPanel = document.getElementById('agent-def-panel');
   const batchDashboard = document.getElementById('batch-dashboard');
   const depLegend = document.getElementById('dep-legend');
@@ -2999,6 +3028,8 @@
     flowPanel.classList.add('hidden');
     variablesPanel.innerHTML = '';
     variablesPanel.classList.add('hidden');
+    toolsPanel.innerHTML = '';
+    toolsPanel.classList.add('hidden');
     agentDefPanel.innerHTML = '';
     agentDefPanel.classList.add('hidden');
     depLegend.innerHTML = '';
@@ -5331,6 +5362,224 @@
       });
     })();
 
+    // === TOOLS SUMMARY PANEL ===
+    (function initToolsSummary() {
+      // Collect tool invocations from DynamicPlan events
+      const tools = {}; // key = schemaName → { displayName, toolKind, invocations: [{ stepId, state, executionTime, error, args, observation }] }
+
+      // 1. Gather tool definitions from DynamicPlanReceived
+      activities.forEach(a => {
+        if (a.valueType !== 'DynamicPlanReceived' || !a.value || !a.value.toolDefinitions) return;
+        a.value.toolDefinitions.forEach(td => {
+          const schema = td.schemaName || '';
+          if (!schema || tools[schema]) return;
+          tools[schema] = {
+            displayName: td.displayName || schema.split('.').pop(),
+            description: td.description || '',
+            toolKind: td.toolKind || 'Unknown',
+            schemaName: schema,
+            iconUri: td.iconUri || '',
+            inputs: (td.inputs || []).map(i => ({ name: i.name || i.propertyName || '', type: (i.type && i.type.$kind) || '' })),
+            outputs: (td.outputs || []).map(o => ({ name: o.name || o.propertyName || '', type: (o.type && o.type.$kind) || '' })),
+            invocations: []
+          };
+        });
+      });
+
+      // 2. Collect invocations from StepTriggered/StepBindUpdate/StepFinished
+      const stepData = {}; // stepId → { taskDialogId, state, thought, args, observation, executionTime, error, timestamps }
+      activities.forEach(a => {
+        if (a.valueType === 'DynamicPlanStepTriggered' && a.value) {
+          const v = a.value;
+          const sid = v.stepId || '';
+          if (!stepData[sid]) stepData[sid] = { taskDialogId: v.taskDialogId || '' };
+          stepData[sid].taskDialogId = v.taskDialogId || stepData[sid].taskDialogId;
+          stepData[sid].thought = v.thought || '';
+          stepData[sid].triggeredTs = a.timestamp || '';
+        }
+        if (a.valueType === 'DynamicPlanStepBindUpdate' && a.value) {
+          const v = a.value;
+          const sid = v.stepId || '';
+          if (!stepData[sid]) stepData[sid] = { taskDialogId: v.taskDialogId || '' };
+          stepData[sid].args = v.arguments || {};
+          stepData[sid].autoFilled = v.autoFilledArguments || [];
+        }
+        if (a.valueType === 'DynamicPlanStepFinished' && a.value) {
+          const v = a.value;
+          const sid = v.stepId || '';
+          if (!stepData[sid]) stepData[sid] = { taskDialogId: v.taskDialogId || '' };
+          stepData[sid].state = v.state || '';
+          stepData[sid].executionTime = v.executionTime || '';
+          stepData[sid].observation = v.observation || {};
+          stepData[sid].error = v.error || null;
+          stepData[sid].finishedTs = a.timestamp || '';
+        }
+      });
+
+      // Assign invocations to tools
+      Object.values(stepData).forEach(sd => {
+        const schema = sd.taskDialogId || '';
+        if (!tools[schema]) {
+          // Tool not declared in toolDefinitions — create from step data
+          const comp = botComponentMap[schema];
+          tools[schema] = {
+            displayName: (comp && comp.displayName) || schema.split('.').pop(),
+            description: (comp && comp.description) || '',
+            toolKind: 'Unknown',
+            schemaName: schema,
+            inputs: [], outputs: [],
+            invocations: []
+          };
+        }
+        tools[schema].invocations.push(sd);
+      });
+
+      // Filter out empty tools with no invocations and no definitions
+      const toolList = Object.values(tools).filter(t => t.invocations.length > 0);
+      if (toolList.length === 0) return;
+
+      // Sort: most invoked first, then alphabetically
+      toolList.sort((a, b) => b.invocations.length - a.invocations.length || a.displayName.localeCompare(b.displayName));
+
+      // Categorize tool kinds
+      function toolKindLabel(kind) {
+        switch (kind) {
+          case 'InvokeFlowTaskAction': return { label: 'Flow', cls: 'flow', icon: '\u26A1' };
+          case 'InvokeConnectedAgentTaskAction': return { label: 'Connected Agent', cls: 'connected', icon: '\uD83D\uDD17' };
+          case 'InvokeExternalAgentTaskAction': return { label: 'External Agent', cls: 'external', icon: '\uD83C\uDF10' };
+          case 'InvokeConnectorTaskAction': return { label: 'Connector', cls: 'connector', icon: '\uD83D\uDD0C' };
+          case 'AdaptiveDialog': return { label: 'Topic', cls: 'topic', icon: '\uD83D\uDCAC' };
+          default: return { label: kind || 'Tool', cls: 'other', icon: '\uD83D\uDD27' };
+        }
+      }
+
+      // Build HTML
+      let html = '';
+
+      // Summary badges by category
+      const byCat = {};
+      toolList.forEach(t => {
+        const cat = toolKindLabel(t.toolKind).label;
+        if (!byCat[cat]) byCat[cat] = { count: 0, invocations: 0, failed: 0 };
+        byCat[cat].count++;
+        byCat[cat].invocations += t.invocations.length;
+        byCat[cat].failed += t.invocations.filter(inv => inv.state === 'failed' || inv.state === 'error' || inv.state === 'faulted').length;
+      });
+      html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">';
+      Object.entries(byCat).forEach(([cat, data]) => {
+        const failText = data.failed > 0 ? ' &middot; <span style="color:var(--red);">' + data.failed + ' failed</span>' : '';
+        html += '<div style="padding:4px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;font-size:11px;">';
+        html += '<strong>' + escapeHtml(cat) + '</strong>: ' + data.count + ' tool' + (data.count !== 1 ? 's' : '') + ', ' + data.invocations + ' call' + (data.invocations !== 1 ? 's' : '') + failText;
+        html += '</div>';
+      });
+      html += '</div>';
+
+      // Tool cards
+      toolList.forEach(t => {
+        const kind = toolKindLabel(t.toolKind);
+        const totalCalls = t.invocations.length;
+        const succeeded = t.invocations.filter(inv => inv.state === 'completed').length;
+        const failed = t.invocations.filter(inv => inv.state === 'failed' || inv.state === 'error' || inv.state === 'faulted').length;
+
+        // Calculate total execution time
+        let totalMs = 0;
+        t.invocations.forEach(inv => {
+          if (inv.executionTime) {
+            const parts = inv.executionTime.split(':');
+            if (parts.length === 3) {
+              const secParts = parts[2].split('.');
+              totalMs += parseInt(parts[0]) * 3600000 + parseInt(parts[1]) * 60000 + parseInt(secParts[0]) * 1000 + (secParts[1] ? parseInt(secParts[1].substring(0, 3)) : 0);
+            }
+          }
+        });
+        const totalTime = totalMs > 0 ? (totalMs / 1000).toFixed(1) + 's' : '';
+
+        html += '<div class="tool-card">';
+        html += '<div class="tool-card-header">';
+        html += '<span class="tool-card-kind ' + kind.cls + '">' + kind.icon + ' ' + escapeHtml(kind.label) + '</span>';
+        html += '<span class="tool-card-name">' + escapeHtml(t.displayName) + '</span>';
+        html += '</div>';
+        if (t.description && t.description !== t.displayName) {
+          html += '<div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;font-style:italic;">' + escapeHtml(t.description.substring(0, 150)) + '</div>';
+        }
+        html += '<div class="tool-card-stats">';
+        html += '<div class="tool-card-stat">Calls: <span class="stat-val">' + totalCalls + '</span></div>';
+        if (succeeded > 0) html += '<div class="tool-card-stat" style="color:var(--green);">\u2705 <span class="stat-val">' + succeeded + '</span></div>';
+        if (failed > 0) html += '<div class="tool-card-stat" style="color:var(--red);">\u274C <span class="stat-val">' + failed + '</span></div>';
+        if (totalTime) html += '<div class="tool-card-stat">\u23F1 <span class="stat-val">' + totalTime + '</span></div>';
+        html += '</div>';
+
+        // Show inputs/outputs if present
+        if (t.inputs.length > 0 || t.outputs.length > 0) {
+          html += '<div style="margin-top:6px;font-size:11px;">';
+          if (t.inputs.length > 0) {
+            html += '<span style="color:var(--text-muted);">In:</span> ';
+            html += t.inputs.map(i => '<code style="font-size:10px;">' + escapeHtml(i.name) + '</code><span style="color:var(--text-muted);font-size:9px;">(' + escapeHtml(i.type) + ')</span>').join(', ');
+          }
+          if (t.outputs.length > 0) {
+            if (t.inputs.length > 0) html += ' &nbsp;&nbsp;';
+            html += '<span style="color:var(--text-muted);">Out:</span> ';
+            html += t.outputs.map(o => '<code style="font-size:10px;">' + escapeHtml(o.name) + '</code><span style="color:var(--text-muted);font-size:9px;">(' + escapeHtml(o.type) + ')</span>').join(', ');
+          }
+          html += '</div>';
+        }
+
+        // Per-invocation details (collapsed)
+        if (totalCalls > 0) {
+          html += '<details style="margin-top:6px;font-size:11px;"><summary style="cursor:pointer;color:var(--text-muted);">Invocation details (' + totalCalls + ')</summary>';
+          html += '<table style="width:100%;border-collapse:collapse;font-size:11px;margin-top:4px;">';
+          html += '<tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:3px 6px;color:var(--text-muted);">#</th><th style="text-align:left;padding:3px 6px;color:var(--text-muted);">State</th><th style="text-align:left;padding:3px 6px;color:var(--text-muted);">Time</th><th style="text-align:left;padding:3px 6px;color:var(--text-muted);">Details</th></tr>';
+          t.invocations.forEach((inv, idx) => {
+            const stateColor = inv.state === 'completed' ? 'var(--green)' : (inv.state === 'failed' || inv.state === 'error' || inv.state === 'faulted') ? 'var(--red)' : 'var(--text)';
+            const stateIcon = inv.state === 'completed' ? '\u2705' : (inv.state === 'failed' || inv.state === 'error' || inv.state === 'faulted') ? '\u274C' : '\u23F3';
+            let details = '';
+            if (inv.error) details = '<span style="color:var(--red);">' + escapeHtml(inv.error.userErrorCode || inv.error.message || 'error') + '</span>';
+            else if (inv.args && Object.keys(inv.args).length > 0) details = Object.entries(inv.args).map(([k,v]) => '<code>' + escapeHtml(k) + '</code>=' + escapeHtml(truncate(typeof v === 'object' ? JSON.stringify(v) : String(v || ''), 50))).join(', ');
+            html += '<tr style="border-bottom:1px solid var(--border);">';
+            html += '<td style="padding:3px 6px;">' + (idx + 1) + '</td>';
+            html += '<td style="padding:3px 6px;color:' + stateColor + ';">' + stateIcon + ' ' + escapeHtml(inv.state || 'pending') + '</td>';
+            html += '<td style="padding:3px 6px;">' + escapeHtml(inv.executionTime || '-') + '</td>';
+            html += '<td style="padding:3px 6px;">' + (details || '-') + '</td>';
+            html += '</tr>';
+          });
+          html += '</table></details>';
+        }
+
+        // Flow-specific: show flow definition info from botContent
+        if (t.toolKind === 'InvokeFlowTaskAction') {
+          const flowId = (botComponentMap._taskDialogFlowMap && botComponentMap._taskDialogFlowMap[t.schemaName]) || null;
+          const flowDef = (flowId && botComponentMap._flows) ? botComponentMap._flows[flowId] : null;
+          if (flowDef) {
+            html += '<div style="margin-top:6px;padding:6px 8px;background:var(--bg);border-radius:4px;font-size:11px;">';
+            html += '<span style="color:var(--text-muted);">Flow ID:</span> <code style="font-size:10px;">' + escapeHtml(flowId) + '</code>';
+            if (flowDef.connectionType) html += ' &middot; <span style="color:var(--text-muted);">Connection:</span> ' + escapeHtml(flowDef.connectionType);
+            html += '</div>';
+          }
+        }
+
+        html += '</div>';
+      });
+
+      // Schema name reference
+      html += '<div style="margin-top:8px;font-size:10px;color:var(--text-muted);">';
+      toolList.forEach(t => {
+        html += '<div><code style="font-size:9px;">' + escapeHtml(t.schemaName) + '</code></div>';
+      });
+      html += '</div>';
+
+      const totalInvocations = toolList.reduce((s, t) => s + t.invocations.length, 0);
+      const statsText = toolList.length + ' tool' + (toolList.length !== 1 ? 's' : '') + ' &middot; ' + totalInvocations + ' invocation' + (totalInvocations !== 1 ? 's' : '');
+
+      toolsPanel.classList.remove('hidden');
+      toolsPanel.innerHTML = '<div class="tools-header"><h3>\uD83D\uDEE0\uFE0F Tools Summary</h3><span style="font-size:12px;color:var(--text-muted);">' + statsText + '</span></div><div class="tools-body" id="tools-body">' + html + '</div>';
+
+      let collapsed = false;
+      toolsPanel.querySelector('.tools-header').addEventListener('click', () => {
+        collapsed = !collapsed;
+        toolsPanel.querySelector('#tools-body').classList.toggle('collapsed-body', collapsed);
+      });
+    })();
+
     // === #5: AGENT DEFINITION PANEL (from botContent.yml) ===
     (function initAgentDefPanel() {
       if (!botContentData || Object.keys(botComponentMap).length === 0) return;
@@ -5643,7 +5892,7 @@
     clone.querySelectorAll('.dep-lines-svg').forEach(el => el.remove());
     clone.querySelectorAll('.resize-handle').forEach(el => el.remove());
     // Ensure new panels are visible in export
-    clone.querySelectorAll('.waterfall-panel,.knowledge-panel,.citation-panel,.flow-panel,.variables-panel,.agent-def-panel,.dep-legend').forEach(el => {
+    clone.querySelectorAll('.waterfall-panel,.knowledge-panel,.citation-panel,.flow-panel,.variables-panel,.tools-panel,.agent-def-panel,.dep-legend').forEach(el => {
       el.classList.remove('hidden');
       el.querySelectorAll('.collapsed-body').forEach(b => b.classList.remove('collapsed-body'));
     });
