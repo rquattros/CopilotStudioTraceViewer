@@ -1167,7 +1167,11 @@
   .tools-body { padding: 12px; }
   .tools-body.collapsed-body { display: none; }
   .tool-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; margin-bottom: 8px; }
-  .tool-card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .tool-card-header { display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
+  .tool-card-header::after { content: '\25B6'; font-size: 9px; color: var(--text-muted); margin-left: auto; transition: transform 0.2s; }
+  .tool-card.expanded .tool-card-header::after { transform: rotate(90deg); }
+  .tool-card-details { display: none; margin-top: 8px; }
+  .tool-card.expanded .tool-card-details { display: block; }
   .tool-card-name { font-weight: 600; color: var(--heading); font-size: 13px; }
   .tool-card-kind { font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 600; color: #fff; }
   .tool-card-kind.flow { background: #7c3aed; }
@@ -5499,6 +5503,7 @@
         html += '<span class="tool-card-kind ' + kind.cls + '">' + kind.icon + ' ' + escapeHtml(kind.label) + '</span>';
         html += '<span class="tool-card-name">' + escapeHtml(t.displayName) + '</span>';
         html += '</div>';
+        html += '<div class="tool-card-details">';
         if (t.description && t.description !== t.displayName) {
           html += '<div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;font-style:italic;">' + escapeHtml(t.description.substring(0, 150)) + '</div>';
         }
@@ -5557,7 +5562,8 @@
           }
         }
 
-        html += '</div>';
+        html += '</div>'; // end tool-card-details
+        html += '</div>'; // end tool-card
       });
 
       // Schema name reference
@@ -5577,6 +5583,14 @@
       toolsPanel.querySelector('.tools-header').addEventListener('click', () => {
         collapsed = !collapsed;
         toolsPanel.querySelector('#tools-body').classList.toggle('collapsed-body', collapsed);
+      });
+
+      // Expand/collapse individual tool cards
+      toolsPanel.querySelectorAll('.tool-card-header').forEach(hdr => {
+        hdr.addEventListener('click', e => {
+          e.stopPropagation();
+          hdr.parentElement.classList.toggle('expanded');
+        });
       });
     })();
 
