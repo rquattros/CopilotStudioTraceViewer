@@ -5164,6 +5164,14 @@
 
       // 4. Harvest output values from DynamicPlanStepFinished.observation
       // When a step completes, its observation contains the actual output variable values
+      // Build a reverse lookup: propertyName → declKey for output variables (handles name vs propertyName mismatch)
+      const propNameToDeclKey = {};
+      Object.keys(varDeclarations).forEach(dk => {
+        const d = varDeclarations[dk];
+        if (d.direction === 'output' && d.propertyName) {
+          propNameToDeclKey[d.schemaName + '::' + d.propertyName] = dk;
+        }
+      });
       let finIdx = 0;
       activities.forEach(a => {
         if (a.valueType === 'DynamicPlanStepFinished' && a.value && a.value.observation) {
@@ -5171,8 +5179,14 @@
           const taskId = a.value.taskDialogId || '';
           // Match observation keys to declared output variables for this task
           Object.keys(obs).forEach(obsKey => {
-            const declKey = taskId + '::' + obsKey;
-            const decl = varDeclarations[declKey];
+            // Try direct match by name, then by propertyName
+            let declKey = taskId + '::' + obsKey;
+            let decl = varDeclarations[declKey];
+            if (!decl) {
+              // Observation keys use propertyName — look up via reverse map
+              const altKey = propNameToDeclKey[taskId + '::' + obsKey];
+              if (altKey) { declKey = altKey; decl = varDeclarations[declKey]; }
+            }
             if (decl && decl.direction === 'output') {
               if (!varEvolution[declKey]) varEvolution[declKey] = [];
               varEvolution[declKey].push({ idx: finIdx, value: obs[obsKey], auto: false, source: 'completed' });
