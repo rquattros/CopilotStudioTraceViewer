@@ -1403,10 +1403,10 @@
 <div class="container">
   <div id="upload-zone" role="button" tabindex="0" aria-label="Upload a botContent.zip or dialog.json trace file. Drop file here or press Enter to browse.">
     <div class="icon">&#128270;</div>
-    <div class="big">Drop dialog.json / .zip files here, or click to upload</div>
-    <p>Exported conversation trace from Copilot Studio &mdash; drop multiple files for batch analysis</p>
+    <div class="big">Drop dialog.json / .zip / botContent.yml files here, or click to upload</div>
+    <p>Exported conversation trace from Copilot Studio &mdash; drop multiple files for batch analysis, or add a standalone botContent.yml for flow details</p>
     <label for="file-input" class="hidden">Upload trace file</label>
-    <input type="file" id="file-input" accept=".json,.zip" multiple aria-label="Upload trace file">
+    <input type="file" id="file-input" accept=".json,.zip,.yml,.yaml" multiple aria-label="Upload trace file">
   </div>
 
   <div id="batch-dashboard" class="batch-dashboard hidden"></div>
@@ -1521,56 +1521,154 @@
     e.preventDefault();
     uploadZone.classList.remove('dragover');
     const files = [...e.dataTransfer.files];
-    if (files.length > 1) handleBatch(files);
-    else if (files.length === 1) handleFile(files[0]);
+    handleMultipleFiles(files);
   });
   fileInput.addEventListener('change', e => {
     const files = [...e.target.files];
-    if (files.length > 1) handleBatch(files);
-    else if (files.length === 1) handleFile(files[0]);
+    handleMultipleFiles(files);
   });
 
-  async function handleFile(file) {
-    currentFileName = file.name;
-    const ext = file.name.toLowerCase().split('.').pop();
+  function handleMultipleFiles(files) {
+    if (!files.length) return;
+    const jsonFiles = [];
+    const zipFiles = [];
+    const ymlFiles = [];
+    files.forEach(f => {
+      const name = f.name.toLowerCase();
+      if (name.endsWith('.json')) jsonFiles.push(f);
+      else if (name.endsWith('.zip')) zipFiles.push(f);
+      else if (name.endsWith('.yml') || name.endsWith('.yaml')) ymlFiles.push(f);
+    });
 
+    // Single ZIP, no JSON => legacy all-in-one ZIP
+    if (jsonFiles.length === 0 && zipFiles.length === 1 && ymlFiles.length === 0) {
+      handleFileWithBotContent(zipFiles[0], null, null);
+      return;
+    }
+    // 1 JSON + 1 ZIP (+ optional YML)
+    if (jsonFiles.length === 1 && zipFiles.length === 1) {
+      handleFileWithBotContent(jsonFiles[0], zipFiles[0], ymlFiles[0] || null);
+      return;
+    }
+    // 1 JSON + 1 YML, no ZIP
+    if (jsonFiles.length === 1 && zipFiles.length === 0 && ymlFiles.length >= 1) {
+      handleFileWithBotContent(jsonFiles[0], null, ymlFiles[0]);
+      return;
+    }
+    // Multiple JSON + optional ZIP/YML => batch
+    if (jsonFiles.length > 1) {
+      handleBatch(jsonFiles);
+      return;
+    }
+    // Single JSON, no ZIP
+    if (jsonFiles.length === 1) {
+      handleFileWithBotContent(jsonFiles[0], null, null);
+      return;
+    }
+    // Fallback
+    handleFileWithBotContent(files[0], null, null);
+  }
+
+  // Load a standalone .yml file and merge into botContentData/botComponentMap
+  async function loadStandaloneYml(ymlFile) {
+    try {
+      const text = await ymlFile.text();
+      const parsed = parseYaml(text);
+      if (parsed) {
+        if (botContentData) {
+          // Merge flows
+          if (parsed.flows && parsed.flows.length) {
+            if (!botContentData.flows) botContentData.flows = [];
+            parsed.flows.forEach(f => {
+              const existing = botContentData.flows.findIndex(e => e.workflowId === f.workflowId);
+              if (existing >= 0) botContentData.flows[existing] = f;
+              else botContentData.flows.push(f);
+            });
+          }
+          // Merge components that don't already exist
+          if (parsed.components && parsed.components.length) {
+            if (!botContentData.components) botContentData.components = [];
+            parsed.components.forEach(c => {
+              if (c.schemaName && !botContentData.components.find(e => e.schemaName === c.schemaName)) {
+                botContentData.components.push(c);
+              }
+            });
+          }
+          botComponentMap = buildComponentMap(botContentData);
+        } else {
+          botContentData = parsed;
+          botComponentMap = buildComponentMap(botContentData);
+        }
+      }
+    } catch(e) { console.warn('[botContent.yml standalone] Parse error:', e); }
+  }
+
+  async function handleFileWithBotContent(transcriptFile, botContentZipFile, standaloneYmlFile) {
+    currentFileName = transcriptFile.name;
+
+    // Load botContent from ZIP if provided
+    if (botContentZipFile) {
+      try {
+        const arrayBuf = await botContentZipFile.arrayBuffer();
+        const { ymlText } = await extractBotContentFromZip(arrayBuf);
+        if (ymlText) {
+          botContentData = parseYaml(ymlText);
+          botComponentMap = buildComponentMap(botContentData);
+        } else {
+          botContentData = null; botComponentMap = {};
+        }
+      } catch(e) {
+        console.warn('[botContent] Parse error:', e);
+        botContentData = null; botComponentMap = {};
+      }
+    } else {
+      botContentData = null; botComponentMap = {};
+    }
+
+    // Load standalone botContent.yml (can supplement or replace ZIP content)
+    if (standaloneYmlFile) await loadStandaloneYml(standaloneYmlFile);
+
+    // Load transcript
+    const ext = transcriptFile.name.toLowerCase().split('.').pop();
     if (ext === 'zip') {
       try {
-        const arrayBuf = await file.arrayBuffer();
+        const arrayBuf = await transcriptFile.arrayBuffer();
         const { jsonText, ymlText } = await extractFromZip(arrayBuf);
-        if (ymlText) {
-          try {
-            botContentData = parseYaml(ymlText);
-            botComponentMap = buildComponentMap(botContentData);
-          } catch(e) {
-            console.warn('[botContent.yml] Parse error:', e);
-            botContentData = null; botComponentMap = {};
-          }
-        } else {
-          botContentData = null;
-          botComponentMap = {};
+        if (!botContentData && ymlText) {
+          try { botContentData = parseYaml(ymlText); botComponentMap = buildComponentMap(botContentData); }
+          catch(e) { console.warn('[botContent.yml] Parse error:', e); }
         }
         const data = JSON.parse(jsonText);
         processDialog(data);
-      } catch(err) {
-        alert('Error processing ZIP: ' + err.message);
-      }
+      } catch(err) { alert('Error processing ZIP: ' + err.message); }
       return;
     }
 
     // JSON file
-    botContentData = null;
-    botComponentMap = {};
     const reader = new FileReader();
     reader.onload = e => {
-      try {
-        const data = JSON.parse(e.target.result);
-        processDialog(data);
-      } catch(err) {
-        alert('Error parsing JSON: ' + err.message);
-      }
+      try { const data = JSON.parse(e.target.result); processDialog(data); }
+      catch(err) { alert('Error parsing JSON: ' + err.message); }
     };
-    reader.readAsText(file);
+    reader.readAsText(transcriptFile);
+  }
+
+  // Extract only botContent data from a ZIP
+  async function extractBotContentFromZip(arrayBuf) {
+    const bytes = new Uint8Array(arrayBuf);
+    const files = parseZipEntries(bytes);
+    let ymlTarget = null;
+    for (const f of files) {
+      const name = f.name.toLowerCase();
+      if (!ymlTarget && (name === 'botcontent.yml' || name.endsWith('/botcontent.yml'))) ymlTarget = f;
+    }
+    let ymlText = null;
+    if (ymlTarget) { try { ymlText = await decompressEntry(bytes, ymlTarget); } catch(e) { /* ignore */ } }
+    return { ymlText };
+  }
+
+  async function handleFile(file) {
+    handleFileWithBotContent(file, null, null);
   }
 
   // === #5: BATCH ANALYSIS ===
@@ -1754,6 +1852,7 @@
   // === MINIMAL YAML PARSER for botContent.yml ===
   // Handles the subset of YAML used by Copilot Studio botContent files:
   // - Key-value pairs, nested objects via indentation, arrays via "- ", multi-line strings via |-
+  function isBlockScalar(val) { return /^\|[+-]?$/.test(val) || /^>[+-]?$/.test(val); }
   function parseYaml(text) {
     const lines = text.split('\n');
     const root = {};
@@ -1761,6 +1860,16 @@
 
     function currentObj() { return stack[stack.length - 1].obj; }
     function currentIndent() { return stack[stack.length - 1].indent; }
+    function consumeBlockScalar(startIdx, blockIndent) {
+      let str = ''; let j = startIdx;
+      while (j < lines.length) {
+        const nr = lines[j]; const nt = nr.trimEnd();
+        if (nt === '') { str += '\n'; j++; continue; }
+        if (nr.search(/\S/) <= blockIndent) break;
+        if (str) str += '\n'; str += nt.trimStart(); j++;
+      }
+      return { str, nextIdx: j };
+    }
 
     let i = 0;
     while (i < lines.length) {
@@ -1782,11 +1891,7 @@
       if (content.startsWith('- ')) {
         const parent = currentObj();
         if (!Array.isArray(parent)) {
-          // The current key's value should be an array — this is handled by the key parser below
-          // If we get here, we're appending to the last key's array
-          i--;
-          // Find the last key that was set
-          break;
+          continue;
         }
         const itemContent = content.substring(2).trimStart();
         if (itemContent.includes(': ')) {
@@ -1818,36 +1923,22 @@
           // We're inside an array but hitting a key — add to last array item
           const lastItem = target[target.length - 1];
           if (lastItem && typeof lastItem === 'object') {
-            if (val === '' || val === '|-' || val === '|') {
-              // Check what follows: another indented block or multiline string
-              if (val === '|-' || val === '|') {
-                // Multi-line string: collect all lines with greater indent
-                let str = '';
-                const blockIndent = indent;
-                while (i < lines.length) {
-                  const nextRaw = lines[i];
-                  const nextTrimmed = nextRaw.trimEnd();
-                  if (nextTrimmed === '') { str += '\n'; i++; continue; }
-                  const nextIndent = nextRaw.search(/\S/);
-                  if (nextIndent <= blockIndent) break;
-                  if (str) str += '\n';
-                  str += nextTrimmed.trimStart();
-                  i++;
-                }
-                lastItem[key] = str;
+            if (isBlockScalar(val)) {
+              const bs = consumeBlockScalar(i, indent);
+              lastItem[key] = bs.str;
+              i = bs.nextIdx;
+            } else if (val === '') {
+              // Nested object or array
+              const nextLine = i < lines.length ? lines[i] : '';
+              const nextContent = nextLine.trimStart();
+              if (nextContent.startsWith('- ')) {
+                const arr = [];
+                lastItem[key] = arr;
+                stack.push({ obj: arr, indent: indent });
               } else {
-                // Nested object or array
-                const nextLine = i < lines.length ? lines[i] : '';
-                const nextContent = nextLine.trimStart();
-                if (nextContent.startsWith('- ')) {
-                  const arr = [];
-                  lastItem[key] = arr;
-                  stack.push({ obj: arr, indent: indent });
-                } else {
-                  const obj = {};
-                  lastItem[key] = obj;
-                  stack.push({ obj: obj, indent: indent });
-                }
+                const obj = {};
+                lastItem[key] = obj;
+                stack.push({ obj: obj, indent: indent });
               }
             } else {
               lastItem[key] = parseYamlValue(val);
@@ -1858,34 +1949,22 @@
 
         if (typeof target !== 'object' || Array.isArray(target)) continue;
 
-        if (val === '' || val === '|-' || val === '|') {
-          if (val === '|-' || val === '|') {
-            let str = '';
-            const blockIndent = indent;
-            while (i < lines.length) {
-              const nextRaw = lines[i];
-              const nextTrimmed = nextRaw.trimEnd();
-              if (nextTrimmed === '') { str += '\n'; i++; continue; }
-              const nextIndent = nextRaw.search(/\S/);
-              if (nextIndent <= blockIndent) break;
-              if (str) str += '\n';
-              str += nextTrimmed.trimStart();
-              i++;
-            }
-            target[key] = str;
+        if (isBlockScalar(val)) {
+          const bs = consumeBlockScalar(i, indent);
+          target[key] = bs.str;
+          i = bs.nextIdx;
+        } else if (val === '') {
+          // Check next line to decide array vs object
+          const nextLine = i < lines.length ? lines[i] : '';
+          const nextContent = nextLine.trimStart();
+          if (nextContent.startsWith('- ')) {
+            const arr = [];
+            target[key] = arr;
+            stack.push({ obj: arr, indent: indent });
           } else {
-            // Check next line to decide array vs object
-            const nextLine = i < lines.length ? lines[i] : '';
-            const nextContent = nextLine.trimStart();
-            if (nextContent.startsWith('- ')) {
-              const arr = [];
-              target[key] = arr;
-              stack.push({ obj: arr, indent: indent });
-            } else {
-              const obj = {};
-              target[key] = obj;
-              stack.push({ obj: obj, indent: indent });
-            }
+            const obj = {};
+            target[key] = obj;
+            stack.push({ obj: obj, indent: indent });
           }
         } else {
           target[key] = parseYamlValue(val);
@@ -2034,7 +2113,79 @@
       }));
     }
 
+    // Parse flows section: flow definitions with trigger input/output schemas
+    const flows = parsed.flows || [];
+    const flowMap = {};
+    flows.forEach(flow => {
+      const entry = {
+        displayName: flow.displayName || '',
+        workflowId: flow.workflowId || '',
+        isEnabled: flow.isEnabled !== false,
+        triggerType: flow.triggerType || '',
+        connectionType: flow.connectionType || '',
+        inputs: {},
+        outputs: {}
+      };
+      if (flow.inputType && flow.inputType.properties) {
+        Object.keys(flow.inputType.properties).forEach(k => {
+          const p = flow.inputType.properties[k];
+          entry.inputs[k] = { displayName: p.displayName || k, type: p.type || 'Unknown', description: p.description || '', isRequired: p.isRequired || false };
+        });
+      }
+      if (flow.outputType && flow.outputType.properties) {
+        Object.keys(flow.outputType.properties).forEach(k => {
+          const p = flow.outputType.properties[k];
+          entry.outputs[k] = { displayName: p.displayName || k, type: p.type || 'Unknown', description: p.description || '' };
+        });
+      }
+      flowMap[flow.workflowId] = entry;
+    });
+    map._flows = flowMap;
+
+    // Build mapping from component schemaName → flowId for TaskDialogs with InvokeFlowTaskAction
+    map._taskDialogFlowMap = {};
+    components.forEach(comp => {
+      if (comp.dialog && comp.dialog.kind === 'TaskDialog' && comp.dialog.action) {
+        const act = comp.dialog.action;
+        if ((act.kind === 'InvokeFlowTaskAction' || act.kind === 'InvokeFlowAction') && act.flowId) {
+          map._taskDialogFlowMap[comp.schemaName || ''] = act.flowId;
+        }
+      }
+    });
+
+    // Extract InvokeFlowAction input/output bindings from topic dialogs
+    components.forEach(comp => {
+      if (comp.dialog && comp.dialog.beginDialog && comp.dialog.beginDialog.actions) {
+        extractFlowBindings(comp.dialog.beginDialog.actions, comp.schemaName || '', map);
+      }
+    });
+
     return map;
+  }
+
+  // Extract InvokeFlowAction input/output bindings from topic actions
+  function extractFlowBindings(actions, topicSchema, map) {
+    if (!Array.isArray(actions)) return;
+    actions.forEach(a => {
+      if (a.kind === 'InvokeFlowAction' && a.flowId) {
+        const flow = map._flows && map._flows[a.flowId];
+        if (flow) {
+          if (!flow.bindings) flow.bindings = [];
+          const binding = { topic: topicSchema, inputBindings: {}, outputBindings: {} };
+          if (a.input && a.input.binding) {
+            Object.keys(a.input.binding).forEach(k => { binding.inputBindings[k] = a.input.binding[k]; });
+          }
+          if (a.output && a.output.binding) {
+            Object.keys(a.output.binding).forEach(k => { binding.outputBindings[k] = a.output.binding[k]; });
+          }
+          flow.bindings.push(binding);
+        }
+      }
+      // Recurse into nested actions
+      if (a.conditions) a.conditions.forEach(c => { if (c.actions) extractFlowBindings(c.actions, topicSchema, map); });
+      if (a.elseActions) extractFlowBindings(a.elseActions, topicSchema, map);
+      if (a.actions) extractFlowBindings(a.actions, topicSchema, map);
+    });
   }
 
   // Extract a flat summary of actions from a dialog flow
@@ -2353,6 +2504,9 @@
     if (vt === 'DynamicPlanStepTriggered') {
       const v = act.value || {};
       const comp = botComponentMap[v.taskDialogId];
+      // Look up flow definition if this is a flow invocation
+      const flowId = (botComponentMap._taskDialogFlowMap && botComponentMap._taskDialogFlowMap[v.taskDialogId]) || null;
+      const flowDef = (flowId && botComponentMap._flows) ? botComponentMap._flows[flowId] : null;
       html += '<div class="detail-section"><h4>Step Details</h4><div class="detail-content">';
       if (comp && comp.displayName) {
         html += '<div class="kv-row"><span class="kv-key">Topic Name</span><span class="kv-val" style="font-weight:600;color:var(--accent);">' + escapeHtml(comp.displayName) + '</span></div>';
@@ -2375,6 +2529,12 @@
       }
       if (comp && comp.connectionReference) {
         html += '<div class="kv-row"><span class="kv-key">Connection Ref</span><span class="kv-val"><code style="font-size:10px;">' + escapeHtml(comp.connectionReference) + '</code></span></div>';
+      }
+      // Flow-specific info
+      if (flowDef) {
+        html += '<div class="kv-row"><span class="kv-key">Flow</span><span class="kv-val"><span class="tool-kind-badge other" style="background:#7c3aed;color:#fff;">Power Automate Flow</span> <strong>' + escapeHtml(flowDef.displayName) + '</strong></span></div>';
+        html += '<div class="kv-row"><span class="kv-key">Flow ID</span><span class="kv-val"><code style="font-size:10px;">' + escapeHtml(flowId) + '</code></span></div>';
+        if (flowDef.connectionType) html += '<div class="kv-row"><span class="kv-key">Connection</span><span class="kv-val">' + escapeHtml(flowDef.connectionType) + '</span></div>';
       }
       html += '</div></div>';
       if (v.thought) {
@@ -2406,22 +2566,106 @@
     if (vt === 'DynamicPlanStepBindUpdate') {
       const v = act.value || {};
       const comp = botComponentMap[v.taskDialogId];
+      const flowId = (botComponentMap._taskDialogFlowMap && botComponentMap._taskDialogFlowMap[v.taskDialogId]) || null;
+      const flowDef = (flowId && botComponentMap._flows) ? botComponentMap._flows[flowId] : null;
       html += '<div class="detail-section"><h4>Binding Details</h4><div class="detail-content">';
       if (comp && comp.displayName) {
         html += '<div class="kv-row"><span class="kv-key">Topic Name</span><span class="kv-val" style="font-weight:600;color:var(--accent);">' + escapeHtml(comp.displayName) + '</span></div>';
       }
       html += '<div class="kv-row"><span class="kv-key">Task/Agent</span><span class="kv-val"><code>' + escapeHtml(v.taskDialogId || '') + '</code></span></div>';
       html += '<div class="kv-row"><span class="kv-key">Step ID</span><span class="kv-val"><code>' + escapeHtml(v.stepId || '') + '</code></span></div>';
+      if (flowDef) {
+        html += '<div class="kv-row"><span class="kv-key">Flow</span><span class="kv-val"><span class="tool-kind-badge other" style="background:#7c3aed;color:#fff;">Power Automate Flow</span> <strong>' + escapeHtml(flowDef.displayName) + '</strong></span></div>';
+      }
       html += '</div></div>';
       if (v.arguments) {
         const autoFilled = v.autoFilledArguments || [];
-        html += '<div class="detail-section"><h4>Arguments</h4><div class="detail-content">';
-        for (const [k, val] of Object.entries(v.arguments)) {
-          const isAuto = autoFilled.includes(k);
-          const display = typeof val === 'object' ? JSON.stringify(val, null, 2) : String(val);
-          html += '<div class="kv-row"><span class="kv-key">' + escapeHtml(k) + '<span class="arg-badge ' + (isAuto ? 'auto' : 'manual') + '">' + (isAuto ? 'AUTO' : 'MANUAL') + '</span></span><span class="kv-val">' + simpleMarkdown(display) + '</span></div>';
+        const expectedInputs = (flowDef && flowDef.inputs) || {};
+        const hasSchema = Object.keys(expectedInputs).length > 0;
+        // Collect input bindings from flow definition
+        const bindingsMap = {};
+        if (flowDef && flowDef.bindings) {
+          flowDef.bindings.forEach(b => {
+            Object.keys(b.inputBindings).forEach(k => {
+              bindingsMap[k] = { expr: b.inputBindings[k], topic: b.topic };
+            });
+          });
         }
-        html += '</div></div>';
+        const hasBindings = Object.keys(bindingsMap).length > 0;
+        const argKeys = Object.keys(v.arguments);
+        const allKeys = new Set([...argKeys, ...Object.keys(expectedInputs)]);
+
+        if (hasSchema || hasBindings) {
+          // Rich table view for flow arguments
+          html += '<div class="detail-section"><h4>Flow Arguments (' + allKeys.size + ' param' + (allKeys.size !== 1 ? 's' : '') + ')</h4><div class="detail-content">';
+          html += '<table style="width:100%;border-collapse:collapse;font-size:12px;">';
+          html += '<tr style="border-bottom:2px solid var(--border);">';
+          html += '<th style="text-align:left;padding:4px 8px;color:var(--text-muted);">Parameter</th>';
+          if (hasSchema) html += '<th style="text-align:left;padding:4px 8px;color:var(--text-muted);">Expected</th>';
+          if (hasBindings) html += '<th style="text-align:left;padding:4px 8px;color:var(--text-muted);">Source Binding</th>';
+          html += '<th style="text-align:left;padding:4px 8px;color:var(--text-muted);">Actual Value</th>';
+          html += '<th style="text-align:left;padding:4px 8px;color:var(--text-muted);">Fill</th>';
+          html += '</tr>';
+          allKeys.forEach(k => {
+            const val = v.arguments.hasOwnProperty(k) ? v.arguments[k] : undefined;
+            const schema = expectedInputs[k];
+            const isAuto = autoFilled.includes(k);
+            const isNull = val === null || val === undefined || val === '';
+            const isMissing = !v.arguments.hasOwnProperty(k);
+            const rowBg = (isNull || isMissing) ? 'background:rgba(239,68,68,0.08);' : '';
+            html += '<tr style="border-bottom:1px solid var(--border);' + rowBg + '">';
+            // Parameter name + display name
+            let paramLabel = escapeHtml(k);
+            if (schema && schema.displayName && schema.displayName !== k) {
+              paramLabel += '<br><span style="font-size:10px;color:var(--text-muted);">' + escapeHtml(schema.displayName) + '</span>';
+            }
+            html += '<td style="padding:6px 8px;font-weight:500;">' + paramLabel + '</td>';
+            // Expected schema column
+            if (hasSchema) {
+              if (schema) {
+                let expStr = '<span style="color:var(--text-muted);font-size:11px;">' + escapeHtml(schema.type || 'Any');
+                if (schema.isRequired) expStr += ' <span style="color:#f59e0b;">(required)</span>';
+                expStr += '</span>';
+                html += '<td style="padding:6px 8px;">' + expStr + '</td>';
+              } else {
+                html += '<td style="padding:6px 8px;"><span style="color:var(--text-muted);font-size:11px;">-</span></td>';
+              }
+            }
+            // Source binding column
+            if (hasBindings) {
+              const bind = bindingsMap[k];
+              if (bind) {
+                const topicName = friendlyTopicName(bind.topic) || bind.topic.split('.').pop();
+                html += '<td style="padding:6px 8px;"><code style="font-size:11px;color:#60a5fa;">' + escapeHtml(bind.expr) + '</code><br><span style="font-size:10px;color:var(--text-muted);">in ' + escapeHtml(topicName) + '</span></td>';
+              } else {
+                html += '<td style="padding:6px 8px;"><span style="color:var(--text-muted);font-size:11px;">-</span></td>';
+              }
+            }
+            // Actual value
+            const valDisplay = isMissing
+              ? '<span style="color:var(--red);font-weight:600;background:#451a1a;padding:2px 6px;border-radius:3px;">MISSING</span>'
+              : isNull
+                ? '<span style="color:var(--red);font-weight:600;background:#451a1a;padding:2px 6px;border-radius:3px;">' + (val === null ? 'null' : 'empty') + '</span>'
+                : '<code style="color:var(--accent);word-break:break-all;">' + escapeHtml(typeof val === 'object' ? JSON.stringify(val) : String(val)) + '</code>';
+            html += '<td style="padding:6px 8px;">' + valDisplay + '</td>';
+            // Fill badge
+            html += '<td style="padding:6px 8px;"><span class="arg-badge ' + (isAuto ? 'auto' : 'manual') + '">' + (isAuto ? 'AUTO' : 'MANUAL') + '</span></td>';
+            html += '</tr>';
+          });
+          html += '</table></div></div>';
+        } else {
+          // Standard arguments view (no flow schema)
+          html += '<div class="detail-section"><h4>Arguments</h4><div class="detail-content">';
+          for (const [k, val] of Object.entries(v.arguments)) {
+            const isAuto = autoFilled.includes(k);
+            const display = typeof val === 'object' ? JSON.stringify(val, null, 2) : String(val);
+            html += '<div class="kv-row"><span class="kv-key">' + escapeHtml(k) + '<span class="arg-badge ' + (isAuto ? 'auto' : 'manual') + '">' + (isAuto ? 'AUTO' : 'MANUAL') + '</span></span><span class="kv-val">' + simpleMarkdown(display) + '</span></div>';
+          }
+          html += '</div></div>';
+        }
+      } else if (flowDef) {
+        // No arguments but we have a flow definition — warn about empty args
+        html += '<div class="detail-section"><h4>\u26A0\uFE0F Arguments</h4><div class="detail-content"><div style="background:#451a1a;border:1px solid #ef4444;border-radius:6px;padding:10px;color:#fca5a5;font-size:12px;">No arguments were bound. The AI model failed to extract parameters for this flow call.</div></div></div>';
       }
     }
 
@@ -2429,6 +2673,8 @@
     if (vt === 'DynamicPlanStepFinished') {
       const v = act.value || {};
       const comp = botComponentMap[v.taskDialogId];
+      const flowId = (botComponentMap._taskDialogFlowMap && botComponentMap._taskDialogFlowMap[v.taskDialogId]) || null;
+      const flowDef = (flowId && botComponentMap._flows) ? botComponentMap._flows[flowId] : null;
       html += '<div class="detail-section"><h4>Step Result</h4><div class="detail-content">';
       if (comp && comp.displayName) {
         html += '<div class="kv-row"><span class="kv-key">Topic Name</span><span class="kv-val" style="font-weight:600;color:var(--accent);">' + escapeHtml(comp.displayName) + '</span></div>';
@@ -2439,6 +2685,9 @@
       if (v.executionTime) {
         html += '<div class="kv-row"><span class="kv-key">Execution Time</span><span class="kv-val">' + escapeHtml(v.executionTime) + '</span></div>';
       }
+      if (flowDef) {
+        html += '<div class="kv-row"><span class="kv-key">Flow</span><span class="kv-val"><span class="tool-kind-badge other" style="background:#7c3aed;color:#fff;">Power Automate Flow</span> <strong>' + escapeHtml(flowDef.displayName) + '</strong></span></div>';
+      }
       html += '</div></div>';
       if (v.error) {
         html += '<div class="detail-section"><h4>Error</h4><div class="detail-content">';
@@ -2447,8 +2696,8 @@
         html += '</div></div>';
       }
       if (v.observation && Object.keys(v.observation).filter(k => k !== 'downloaded_files').length > 0) {
-        html += '<div class="detail-section"><h4>Observation / Output</h4><div class="detail-content">';
         if (v.observation.search_result && v.observation.search_result.search_results) {
+          html += '<div class="detail-section"><h4>Observation / Output</h4><div class="detail-content">';
           const results = v.observation.search_result.search_results;
           html += '<div style="margin-bottom:8px;color:var(--text-muted);">' + results.length + ' search results returned</div>';
           results.forEach((r, i) => {
@@ -2458,15 +2707,72 @@
             html += '<div class="sr-text">' + escapeHtml(truncate(r.Text || '', 300)) + '</div>';
             html += '</div>';
           });
+          html += '</div></div>';
+        } else if (flowDef && typeof v.observation === 'object') {
+          // Flow output with expected schema
+          const expectedOutputs = flowDef.outputs || {};
+          const hasOutSchema = Object.keys(expectedOutputs).length > 0;
+          // Collect output bindings
+          const outBindingsMap = {};
+          if (flowDef.bindings) {
+            flowDef.bindings.forEach(b => {
+              Object.keys(b.outputBindings).forEach(k => {
+                outBindingsMap[k] = { expr: b.outputBindings[k], topic: b.topic };
+              });
+            });
+          }
+          const hasOutBindings = Object.keys(outBindingsMap).length > 0;
+          const obsKeys = Object.keys(v.observation).filter(k => k !== 'downloaded_files');
+          const allOutKeys = new Set([...obsKeys, ...Object.keys(expectedOutputs)]);
+          html += '<div class="detail-section"><h4>Flow Output (' + obsKeys.length + ' field' + (obsKeys.length !== 1 ? 's' : '') + ')</h4><div class="detail-content">';
+          html += '<table style="width:100%;border-collapse:collapse;font-size:12px;">';
+          html += '<tr style="border-bottom:2px solid var(--border);">';
+          html += '<th style="text-align:left;padding:4px 8px;color:var(--text-muted);">Field</th>';
+          if (hasOutSchema) html += '<th style="text-align:left;padding:4px 8px;color:var(--text-muted);">Expected</th>';
+          if (hasOutBindings) html += '<th style="text-align:left;padding:4px 8px;color:var(--text-muted);">Output Binding</th>';
+          html += '<th style="text-align:left;padding:4px 8px;color:var(--text-muted);">Value</th>';
+          html += '</tr>';
+          allOutKeys.forEach(k => {
+            if (k === 'downloaded_files') return;
+            const val = v.observation[k];
+            const schema = expectedOutputs[k];
+            html += '<tr style="border-bottom:1px solid var(--border);">';
+            let fieldLabel = escapeHtml(k);
+            if (schema && schema.displayName && schema.displayName !== k) {
+              fieldLabel += '<br><span style="font-size:10px;color:var(--text-muted);">' + escapeHtml(schema.displayName) + '</span>';
+            }
+            html += '<td style="padding:6px 8px;font-weight:500;">' + fieldLabel + '</td>';
+            if (hasOutSchema) {
+              if (schema) {
+                html += '<td style="padding:6px 8px;"><span style="color:var(--text-muted);font-size:11px;">' + escapeHtml(schema.type || 'Any') + '</span></td>';
+              } else {
+                html += '<td style="padding:6px 8px;"><span style="color:var(--text-muted);font-size:11px;">-</span></td>';
+              }
+            }
+            if (hasOutBindings) {
+              const bind = outBindingsMap[k];
+              if (bind) {
+                const topicName = friendlyTopicName(bind.topic) || bind.topic.split('.').pop();
+                html += '<td style="padding:6px 8px;"><code style="font-size:11px;color:#60a5fa;">' + escapeHtml(bind.expr) + '</code><br><span style="font-size:10px;color:var(--text-muted);">in ' + escapeHtml(topicName) + '</span></td>';
+              } else {
+                html += '<td style="padding:6px 8px;"><span style="color:var(--text-muted);font-size:11px;">-</span></td>';
+              }
+            }
+            const display = typeof val === 'string' ? val : JSON.stringify(val, null, 2);
+            html += '<td style="padding:6px 8px;max-width:400px;overflow:auto;">' + simpleMarkdown(display || '') + '</td>';
+            html += '</tr>';
+          });
+          html += '</table></div></div>';
         } else if (typeof v.observation === 'object') {
+          html += '<div class="detail-section"><h4>Observation / Output</h4><div class="detail-content">';
           for (const [ok, ov] of Object.entries(v.observation)) {
             if (ok === 'downloaded_files') continue;
             const display = typeof ov === 'string' ? ov : JSON.stringify(ov, null, 2);
             html += '<div style="margin-bottom:8px;"><strong style="color:var(--accent);">' + escapeHtml(ok) + '</strong></div>';
             html += '<div style="max-height:300px;overflow:auto;">' + simpleMarkdown(display) + '</div>';
           }
+          html += '</div></div>';
         }
-        html += '</div></div>';
       }
     }
 
