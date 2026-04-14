@@ -1187,6 +1187,9 @@
   .tool-card-kind.external { background: #f59e0b; }
   .tool-card-kind.connector { background: #10b981; }
   .tool-card-kind.topic { background: #6366f1; }
+  .tool-card-kind.ai-builder { background: #ec4899; }
+  .finish-stop { background: rgba(63,185,80,0.15); color: var(--green); }
+  .finish-length { background: rgba(210,153,34,0.15); color: var(--orange); }
   .tool-card-kind.other { background: #6b7280; }
   .tool-card-stats { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11px; color: var(--text-muted); }
   .tool-card-stat { display: flex; align-items: center; gap: 4px; }
@@ -2452,6 +2455,7 @@
       if (vt === 'DynamicPlanStepFinished') return { cat: 'tool', badge: 'Step Finished', badgeCls: 'badge-tool' };
       if (vt === 'DynamicPlanFinished') return { cat: 'plan', badge: 'Plan Complete', badgeCls: 'badge-plan' };
       if (vt === 'UniversalSearchToolTraceData') return { cat: 'search', badge: 'Search', badgeCls: 'badge-search' };
+      if (vt === 'AIBuilderTraceData') return { cat: 'tool', badge: 'AI Builder', badgeCls: 'badge-tool' };
       if (vt === 'DialogTracingInfo') return { cat: 'info', badge: 'Dialog Trace', badgeCls: 'badge-info' };
       if (vt === 'GenerativeAnswersSupportData' || act.name === 'GenerativeAnswersSupportData') return { cat: 'info', badge: 'Gen Answers', badgeCls: 'badge-info' };
       return { cat: 'info', badge: vt || 'Event', badgeCls: 'badge-info' };
@@ -2505,6 +2509,11 @@
       const actions = (act.value && act.value.actions) || [];
       if (actions.length === 0) return 'Dialog trace (no actions)';
       return 'Dialog trace: ' + actions.map(a => a.actionType + ' (' + (friendlyTopicName(a.topicId) || a.topicId.split('.').pop()) + ')').join(', ');
+    }
+    if (vt === 'AIBuilderTraceData') {
+      const v = act.value || {};
+      const out = v.outputText || '';
+      return 'AI Builder' + (out ? ' \u2014 ' + truncate(out, 80) : '');
     }
     if (act.name === 'GenerativeAnswersSupportData') {
       const v = act.value || {};
@@ -2884,7 +2893,31 @@
       html += '</div></div>';
     }
 
-    // Dialog Tracing
+    // AI Builder Trace Data
+    if (vt === 'AIBuilderTraceData') {
+      const v = act.value || {};
+      html += '<div class="detail-section"><h4>\uD83E\uDDE0 AI Builder Action</h4><div class="detail-content">';
+      html += '<div class="kv-row"><span class="kv-key">Action ID</span><span class="kv-val"><code>' + escapeHtml(v.actionId || '') + '</code></span></div>';
+      const topicFriendly = friendlyTopicName(v.topicSchemaName);
+      if (topicFriendly && topicFriendly !== (v.topicSchemaName || '').split('.').pop()) {
+        html += '<div class="kv-row"><span class="kv-key">Topic</span><span class="kv-val"><strong style="color:var(--accent);">' + escapeHtml(topicFriendly) + '</strong> <code class="topic-schema-code">' + escapeHtml(v.topicSchemaName || '') + '</code></span></div>';
+      } else {
+        html += '<div class="kv-row"><span class="kv-key">Topic</span><span class="kv-val"><code>' + escapeHtml(v.topicSchemaName || v.topicId || '') + '</code></span></div>';
+      }
+      html += '</div></div>';
+      if (v.input && Object.keys(v.input).length > 0) {
+        html += '<div class="detail-section"><h4>Input Variables (' + Object.keys(v.input).length + ')</h4><div class="detail-content auto-kv-section">';
+        Object.entries(v.input).forEach(function(entry) {
+          html += '<div class="kv-row"><span class="kv-key">' + escapeHtml(entry[0]) + '</span><span class="kv-val" style="max-height:100px;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(truncate(String(entry[1] || ''), 200)) + '</span></div>';
+        });
+        html += '</div></div>';
+      }
+      if (v.outputText) {
+        html += '<div class="detail-section"><h4>Generated Text</h4><div class="detail-content message-text">' + simpleMarkdown(v.outputText) + '</div></div>';
+      }
+    }
+
+    // Dialog Tracing — enrich InvokeAIBuilderModelAction with model details
     if (vt === 'DialogTracingInfo') {
       const actions = (act.value && act.value.actions) || [];
       if (actions.length) {
@@ -2910,7 +2943,31 @@
             const ds = a.variableState.dialogState || {};
             const gs = a.variableState.globalState || {};
             if (Object.keys(ds).length || Object.keys(gs).length) {
-              html += '<div class="kv-row"><span class="kv-key">Variables</span><span class="kv-val"><pre style="margin:0;">' + escapeHtml(JSON.stringify(a.variableState, null, 2)) + '</pre></span></div>';
+              // Special rendering for aib_Output (AI Builder prediction output)
+              if (ds.aib_Output && typeof ds.aib_Output === 'object') {
+                const out = ds.aib_Output;
+                html += '<div style="margin-top:6px;padding:8px;background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.2);border-radius:6px;">';
+                html += '<div style="font-size:11px;font-weight:600;color:var(--purple);margin-bottom:4px;">\uD83E\uDDE0 AI Builder Prediction Output</div>';
+                if (out.modelName) html += '<div class="kv-row"><span class="kv-key">Model</span><span class="kv-val"><code>' + escapeHtml(out.modelName) + '</code></span></div>';
+                if (out.modelType) html += '<div class="kv-row"><span class="kv-key">Model Type</span><span class="kv-val">' + escapeHtml(out.modelType) + '</span></div>';
+                if (out.finishReason) html += '<div class="kv-row"><span class="kv-key">Finish Reason</span><span class="kv-val"><span class="finish-' + (out.finishReason === 'stop' ? 'stop' : 'length') + '" style="padding:1px 8px;border-radius:3px;">' + escapeHtml(out.finishReason) + '</span></span></div>';
+                if (out.promptTokens || out.completionTokens || out.totalTokens) {
+                  html += '<div class="kv-row"><span class="kv-key">Tokens</span><span class="kv-val">' + (out.promptTokens || 0) + ' prompt + ' + (out.completionTokens || 0) + ' completion = <strong>' + (out.totalTokens || 0) + '</strong></span></div>';
+                }
+                if (out.costAsCopilotCredits) html += '<div class="kv-row"><span class="kv-key">Copilot Credits</span><span class="kv-val" style="color:var(--orange);"><strong>' + out.costAsCopilotCredits + '</strong></span></div>';
+                if (out.costAsAiBuilderCredits) html += '<div class="kv-row"><span class="kv-key">AI Builder Credits</span><span class="kv-val"><strong>' + out.costAsAiBuilderCredits + '</strong></span></div>';
+                if (out.text) html += '<div style="margin-top:6px;"><div style="font-size:10px;color:var(--text-muted);margin-bottom:2px;">Generated Text:</div><div class="message-text" style="font-size:12px;">' + simpleMarkdown(out.text) + '</div></div>';
+                if (out.thoughtSteps) html += '<div style="margin-top:4px;border-left:3px solid var(--orange);padding-left:8px;font-style:italic;font-size:11px;">' + escapeHtml(out.thoughtSteps) + '</div>';
+                html += '</div>';
+                // Show remaining variables (excluding aib_Output)
+                const remaining = Object.assign({}, ds);
+                delete remaining.aib_Output;
+                if (Object.keys(remaining).length || Object.keys(gs).length) {
+                  html += '<div class="kv-row"><span class="kv-key">Other Variables</span><span class="kv-val"><pre style="margin:0;">' + escapeHtml(JSON.stringify({ dialogState: remaining, globalState: gs }, null, 2)) + '</pre></span></div>';
+                }
+              } else {
+                html += '<div class="kv-row"><span class="kv-key">Variables</span><span class="kv-val"><pre style="margin:0;">' + escapeHtml(JSON.stringify(a.variableState, null, 2)) + '</pre></span></div>';
+              }
             }
           }
           html += '</div>';
@@ -2952,7 +3009,7 @@
     }
 
     // Auto-render unknown event types as KV table
-    const knownVTs = ['DynamicPlanReceived','DynamicPlanReceivedDebug','DynamicPlanStepTriggered','DynamicPlanStepBindUpdate','DynamicPlanStepFinished','DynamicPlanFinished','UniversalSearchToolTraceData','DialogTracingInfo','GenerativeAnswersSupportData'];
+    const knownVTs = ['DynamicPlanReceived','DynamicPlanReceivedDebug','DynamicPlanStepTriggered','DynamicPlanStepBindUpdate','DynamicPlanStepFinished','DynamicPlanFinished','UniversalSearchToolTraceData','DialogTracingInfo','GenerativeAnswersSupportData','AIBuilderTraceData'];
     if (act.type === 'event' && act.value && typeof act.value === 'object' && !knownVTs.includes(vt) && vt !== '') {
       html += '<div class="detail-section"><h4>Event Data (' + escapeHtml(vt) + ')</h4><div class="detail-content auto-kv-section">';
       html += renderAutoKV(act.value);
@@ -5481,6 +5538,26 @@
         }
       });
 
+      // 2b. Enrich invocations with AI Builder data from AIBuilderTraceData and DialogTracingInfo
+      const aiBuilderTraces = {}; // actionId → { input, outputText, topicSchemaName }
+      const aiBuilderOutputs = {}; // actionId → aib_Output object
+      activities.forEach(a => {
+        if (a.valueType === 'AIBuilderTraceData' && a.value) {
+          const v = a.value;
+          aiBuilderTraces[v.actionId || ''] = { input: v.input || {}, outputText: v.outputText || '', topicSchemaName: v.topicSchemaName || '' };
+        }
+        if (a.valueType === 'DialogTracingInfo' && a.value && a.value.actions) {
+          a.value.actions.forEach(act => {
+            if (act.actionType === 'InvokeAIBuilderModelAction' && act.variableState && act.variableState.dialogState) {
+              const ds = act.variableState.dialogState;
+              if (ds.aib_Output && typeof ds.aib_Output === 'object') {
+                aiBuilderOutputs[act.actionId || ''] = ds.aib_Output;
+              }
+            }
+          });
+        }
+      });
+
       // Assign invocations to tools
       Object.values(stepData).forEach(sd => {
         const schema = sd.taskDialogId || '';
@@ -5499,6 +5576,37 @@
         tools[schema].invocations.push(sd);
       });
 
+      // Create AI Builder tool entries from AIBuilderTraceData if not already covered by step data
+      Object.entries(aiBuilderTraces).forEach(function(entry) {
+        const actionId = entry[0];
+        const trace = entry[1];
+        const schema = trace.topicSchemaName || '';
+        if (schema && tools[schema]) {
+          // Enrich existing tool with AI Builder data
+          tools[schema]._isAIBuilder = true;
+          tools[schema].invocations.forEach(inv => {
+            // Match by observation containing aib_Output
+            if (inv.observation && inv.observation.aib_Output) {
+              inv._aibOutput = inv.observation.aib_Output;
+            }
+          });
+        }
+      });
+
+      // Also attach aib_Output from DialogTracingInfo outputs
+      Object.entries(aiBuilderOutputs).forEach(function(entry) {
+        var output = entry[1];
+        // Find any tool invocation that has matching observation
+        Object.values(tools).forEach(t => {
+          t.invocations.forEach(inv => {
+            if (inv.observation && inv.observation.aib_Output) {
+              inv._aibOutput = inv.observation.aib_Output;
+              t._isAIBuilder = true;
+            }
+          });
+        });
+      });
+
       // Filter out empty tools with no invocations and no definitions
       const toolList = Object.values(tools).filter(t => t.invocations.length > 0);
       if (toolList.length === 0) return;
@@ -5514,6 +5622,7 @@
           case 'InvokeExternalAgentTaskAction': return { label: 'External Agent', cls: 'external', icon: '\uD83C\uDF10' };
           case 'InvokeConnectorTaskAction': return { label: 'Connector', cls: 'connector', icon: '\uD83D\uDD0C' };
           case 'AdaptiveDialog': return { label: 'Topic', cls: 'topic', icon: '\uD83D\uDCAC' };
+          case 'AIBuilderModel': return { label: 'AI Builder', cls: 'ai-builder', icon: '\uD83E\uDDE0' };
           default: return { label: kind || 'Tool', cls: 'other', icon: '\uD83D\uDD27' };
         }
       }
@@ -5609,6 +5718,26 @@
             html += '</tr>';
           });
           html += '</table></details>';
+        }
+
+        // AI Builder-specific: show model, tokens, credits
+        if (t._isAIBuilder) {
+          var totalTokens = 0, totalCredits = 0, aibModelName = '';
+          t.invocations.forEach(inv => {
+            if (inv._aibOutput) {
+              totalTokens += inv._aibOutput.totalTokens || 0;
+              totalCredits += inv._aibOutput.costAsCopilotCredits || 0;
+              if (inv._aibOutput.modelName && !aibModelName) aibModelName = inv._aibOutput.modelName;
+            }
+          });
+          if (aibModelName || totalTokens > 0 || totalCredits > 0) {
+            html += '<div style="margin-top:6px;padding:6px 8px;background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.2);border-radius:4px;font-size:11px;display:flex;gap:12px;flex-wrap:wrap;">';
+            html += '<span style="color:var(--purple);font-weight:600;">\uD83E\uDDE0 AI Builder</span>';
+            if (aibModelName) html += '<span style="color:var(--text-muted);">Model: <strong style="color:var(--text);">' + escapeHtml(aibModelName) + '</strong></span>';
+            if (totalTokens > 0) html += '<span style="color:var(--text-muted);">Tokens: <strong style="color:var(--text);">' + totalTokens.toLocaleString() + '</strong></span>';
+            if (totalCredits > 0) html += '<span style="color:var(--orange);">Credits: <strong>' + totalCredits + '</strong></span>';
+            html += '</div>';
+          }
         }
 
         // Flow-specific: show flow definition info from botContent
