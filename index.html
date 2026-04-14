@@ -1072,6 +1072,7 @@
   }
   .waterfall-header h3 { font-size: 14px; color: var(--heading); }
   .waterfall-body { padding: 12px; overflow-x: auto; }
+  .waterfall-body.collapsed-body { display: none; }
   .waterfall-chart { position: relative; min-height: 40px; }
   .wf-row { display: flex; align-items: center; height: 24px; margin-bottom: 2px; }
   .wf-label { width: 180px; min-width: 180px; font-size: 11px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 8px; text-align: right; }
@@ -1081,6 +1082,7 @@
   .wf-bar-label { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); font-size: 9px; color: #fff; white-space: nowrap; pointer-events: none; }
   .wf-time-axis { display: flex; justify-content: space-between; padding-left: 180px; font-size: 10px; color: var(--text-muted); margin-top: 4px; }
   .wf-legend { display: flex; gap: 12px; flex-wrap: wrap; padding: 8px 16px; font-size: 11px; }
+  .wf-legend.collapsed-body { display: none; }
   .wf-legend-item { display: flex; align-items: center; gap: 4px; }
   .wf-legend-dot { width: 10px; height: 10px; border-radius: 2px; }
 
@@ -1135,7 +1137,7 @@
     display: flex; align-items: center; justify-content: space-between; cursor: pointer;
   }
   .variables-header h3 { font-size: 14px; color: var(--heading); }
-  .variables-body { padding: 12px; }
+  .variables-body { padding: 12px; max-height: 400px; overflow-y: auto; }
   .variables-body.collapsed-body { display: none; }
   .var-table { width: 100%; border-collapse: collapse; font-size: 12px; }
   .var-table th { text-align: left; padding: 6px 10px; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid var(--border); }
@@ -4460,8 +4462,8 @@
       }
 
       waterfallPanel.classList.remove('hidden');
-      let collapsed = false;
-      waterfallPanel.innerHTML = '<div class="waterfall-header"><h3>&#9202; Performance Waterfall</h3><span style="font-size:12px;color:var(--text-muted);">' + rows.length + ' steps &middot; ' + (totalMs/1000).toFixed(1) + 's total</span></div><div class="waterfall-body"><div class="waterfall-chart" id="wf-chart"></div><div class="wf-time-axis" id="wf-axis"></div></div><div class="wf-legend" id="wf-legend"></div>';
+      let collapsed = true;
+      waterfallPanel.innerHTML = '<div class="waterfall-header"><h3>&#9202; Performance Waterfall</h3><span style="font-size:12px;color:var(--text-muted);">' + rows.length + ' steps &middot; ' + (totalMs/1000).toFixed(1) + 's total</span></div><div class="waterfall-body collapsed-body"><div class="waterfall-chart" id="wf-chart"></div><div class="wf-time-axis" id="wf-axis"></div></div><div class="wf-legend collapsed-body" id="wf-legend"></div>';
 
       const wfChart = waterfallPanel.querySelector('#wf-chart');
       const wfAxis = waterfallPanel.querySelector('#wf-axis');
@@ -4502,8 +4504,8 @@
       // Toggle collapse
       waterfallPanel.querySelector('.waterfall-header').addEventListener('click', () => {
         collapsed = !collapsed;
-        waterfallPanel.querySelector('.waterfall-body').style.display = collapsed ? 'none' : '';
-        waterfallPanel.querySelector('.wf-legend').style.display = collapsed ? 'none' : '';
+        waterfallPanel.querySelector('.waterfall-body').classList.toggle('collapsed-body', collapsed);
+        waterfallPanel.querySelector('.wf-legend').classList.toggle('collapsed-body', collapsed);
       });
     })();
 
@@ -4526,7 +4528,7 @@
       if (searchTraces.length === 0 && stepFinished.length === 0 && gptFeedbacks.length === 0) return;
 
       knowledgePanel.classList.remove('hidden');
-      let collapsed = false;
+      let collapsed = true;
 
       // Build schemaName -> displayName map from toolDefinitions for friendly names
       const schemaDisplayNames = {};
@@ -4635,7 +4637,7 @@
       });
 
       const totalSearches = searchTraces.length + (gptSearchCount > 0 ? 1 : 0);
-      let html = '<div class="knowledge-header"><h3>&#128218; Knowledge Sources</h3><span style="font-size:12px;color:var(--text-muted);">' + totalSearches + ' search' + (totalSearches !== 1 ? 'es' : '') + '</span></div><div class="knowledge-body" id="kb-body">';
+      let html = '<div class="knowledge-header"><h3>&#128218; Knowledge Sources</h3><span style="font-size:12px;color:var(--text-muted);">' + totalSearches + ' search' + (totalSearches !== 1 ? 'es' : '') + '</span></div><div class="knowledge-body collapsed-body" id="kb-body">';
 
       if (queries.length > 0) {
         html += '<div class="ks-section"><h4>Search Queries</h4>';
@@ -4757,7 +4759,7 @@
       if (allCitations.length === 0 && allSearchResults.length === 0) return;
 
       citationPanel.classList.remove('hidden');
-      let collapsed = false;
+      let collapsed = true;
 
       // Cross-reference: for each citation, check verification tier
       // URL matching is primary (most reliable); name matching is fallback
@@ -4817,7 +4819,7 @@
       });
 
       let html = '<div class="citation-header"><h3>&#128269; Citation Verification</h3><span style="font-size:12px;color:var(--text-muted);">' + allCitations.length + ' citation' + (allCitations.length !== 1 ? 's' : '') + ' &middot; ' + allSearchResults.length + ' search result' + (allSearchResults.length !== 1 ? 's' : '') + '</span></div>';
-      html += '<div class="citation-body" id="cit-body">';
+      html += '<div class="citation-body collapsed-body" id="cit-body">';
 
       // Summary
       html += '<div class="cit-summary">';
@@ -5010,7 +5012,7 @@
       if (nodeArr.length === 0) return;
 
       flowPanel.classList.remove('hidden');
-      let collapsed = false;
+      let collapsed = true;
 
       // Deduplicate edges
       const edgeMap = {};
@@ -5124,7 +5126,7 @@
       legendHtml += '<span><svg width="20" height="8" style="vertical-align:middle"><line x1="0" y1="4" x2="20" y2="4" stroke="var(--accent)" stroke-width="2" stroke-dasharray="3,3"/></svg> Return</span>';
       legendHtml += '</div>';
 
-      flowPanel.innerHTML = '<div class="flow-header"><h3>&#128256; Topic Flow</h3><span style="font-size:12px;color:var(--text-muted);">' + statsText + '</span></div><div class="flow-body" id="flow-body">' + svgHtml + '</div>' + legendHtml;
+      flowPanel.innerHTML = '<div class="flow-header"><h3>&#128256; Topic Flow</h3><span style="font-size:12px;color:var(--text-muted);">' + statsText + '</span></div><div class="flow-body collapsed-body" id="flow-body">' + svgHtml + '</div>' + legendHtml;
 
       flowPanel.querySelector('.flow-header').addEventListener('click', () => {
         collapsed = !collapsed;
@@ -5323,7 +5325,7 @@
       if (!hasVars && !hasDialogState) return;
 
       variablesPanel.classList.remove('hidden');
-      let collapsed = false;
+      let collapsed = true;
 
       // Render
       function formatVal(v) {
@@ -5417,7 +5419,7 @@
       }, 0);
       const statsText = varCount + ' variable' + (varCount !== 1 ? 's' : '') + ' &middot; ' + changesCount + ' change' + (changesCount !== 1 ? 's' : '');
 
-      variablesPanel.innerHTML = '<div class="variables-header"><h3>&#128202; Variable Tracker</h3><span style="font-size:12px;color:var(--text-muted);">' + statsText + '</span></div><div class="variables-body" id="var-body">' + html + '</div>';
+      variablesPanel.innerHTML = '<div class="variables-header"><h3>&#128202; Variable Tracker</h3><span style="font-size:12px;color:var(--text-muted);">' + statsText + '</span></div><div class="variables-body collapsed-body" id="var-body">' + html + '</div>';
 
       variablesPanel.querySelector('.variables-header').addEventListener('click', () => {
         collapsed = !collapsed;
@@ -5636,9 +5638,9 @@
       const statsText = toolList.length + ' tool' + (toolList.length !== 1 ? 's' : '') + ' &middot; ' + totalInvocations + ' invocation' + (totalInvocations !== 1 ? 's' : '');
 
       toolsPanel.classList.remove('hidden');
-      toolsPanel.innerHTML = '<div class="tools-header"><h3>\uD83D\uDEE0\uFE0F Tools Summary</h3><span style="font-size:12px;color:var(--text-muted);">' + statsText + '</span></div><div class="tools-body" id="tools-body">' + html + '</div>';
+      toolsPanel.innerHTML = '<div class="tools-header"><h3>\uD83D\uDEE0\uFE0F Tools Summary</h3><span style="font-size:12px;color:var(--text-muted);">' + statsText + '</span></div><div class="tools-body collapsed-body" id="tools-body">' + html + '</div>';
 
-      let collapsed = false;
+      let collapsed = true;
       toolsPanel.querySelector('.tools-header').addEventListener('click', () => {
         collapsed = !collapsed;
         toolsPanel.querySelector('#tools-body').classList.toggle('collapsed-body', collapsed);
