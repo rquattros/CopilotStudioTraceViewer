@@ -4,6 +4,12 @@ A single-page web application for exploring and analyzing conversation traces ex
 
 ![Dark themed trace viewer](https://img.shields.io/badge/theme-dark-0d1117) ![No dependencies](https://img.shields.io/badge/dependencies-none-brightgreen) ![Single file](https://img.shields.io/badge/single%20file-index.html-blue)
 
+
+<img width="2524" height="1232" alt="image" src="https://github.com/user-attachments/assets/703ef96d-b678-44ae-8cb3-e27c543496c1" />
+
+<img width="2512" height="1219" alt="image" src="https://github.com/user-attachments/assets/b016c5f7-e631-4c02-be5f-3a26ba10f900" />
+
+
 ## Getting Started
 
 Open `index.html` in any modern browser — no build step, no server, no dependencies.
