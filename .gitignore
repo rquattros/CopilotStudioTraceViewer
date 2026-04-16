@@ -1,5 +1,8 @@
 *.zip
 *.log
+*.yml
+*.yaml
 dialog.json
 .DS_Store
 Thumbs.db
+.vscode/
