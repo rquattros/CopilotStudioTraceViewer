@@ -199,7 +199,7 @@ Dataverse channel transcripts include:
 - **DialogErrorDetail** — any errors that occurred during the conversation
 - **Variable assignments** — variable values set throughout the conversation
 - **Intent recognition** — what the system understood at each user turn
-- **Topic redirects** — when and where the conversation switched topics
+- **Topic redirects** — when and where the conversation switched topics, with **automatic friendly name resolution** from the Dataverse `botcomponents` table (no manual upload needed)
 - **Session info** — engaged/unengaged status, outcome (Resolved/Escalated/Abandon), turn count
 - **CSAT data** — survey requests and responses
 - **Node-level trace data** (if [Enhanced Transcripts](#enable-enhanced-transcripts-optional) are enabled) — per-node execution with timing
@@ -210,7 +210,15 @@ Dataverse channel transcripts include:
 
 - A **Microsoft Entra ID (Azure AD) App Registration** configured as a Single-Page Application
 - The **Dynamics CRM `user_impersonation`** API permission granted to that app
-- Your user account must have the **Bot Transcript Viewer** security role in the target Dataverse environment
+- Your user account must have **Read** access to the following Dataverse tables:
+
+| Dataverse Table | API Entity Name | Purpose |
+|---|---|---|
+| **Bot** | `bots` | Populate the agent filter dropdown |
+| **Conversation Transcript** | `conversationtranscripts` | List, filter, and load conversation transcripts |
+| **Bot Component** | `botcomponents` | Auto-resolve component GUIDs to friendly topic/dialog names |
+
+  The built-in **Bot Transcript Viewer** security role covers the first two tables. For `botcomponents` access, your admin may need to add Read privilege on the **Bot Component** table to your security role (see Step 7 below).
 - A modern browser (the same browsers that support the trace viewer)
 
 ### Step-by-step setup
@@ -265,15 +273,30 @@ If you skipped the redirect URI during registration, or need to change it:
 
 > **Important:** The redirect URI must **exactly match** the URL in your browser's address bar when using the Trace Viewer (including trailing slashes). If they don't match, login will fail with a redirect error.
 
-#### Step 7 — Get the Bot Transcript Viewer security role
+#### Step 7 — Configure Dataverse security roles
 
-Your user account needs permission to read conversation transcripts in Dataverse. An admin in your environment must assign you the **Bot Transcript Viewer** role:
+Your user account needs permission to read conversation transcripts and bot components in Dataverse.
+
+**Option A — Bot Transcript Viewer role (minimum for transcripts)**
 
 1. Go to the [Power Platform Admin Center](https://admin.powerplatform.microsoft.com/).
 2. Select your **environment**.
 3. Click **Settings** → **Users + permissions** → **Security roles**.
 4. Find and open the **Bot Transcript Viewer** role.
 5. Add your user account to this role.
+
+This grants Read access to the `bots` and `conversationtranscripts` tables.
+
+**Option B — Add Bot Component read access (recommended)**
+
+To enable automatic topic name resolution (so `DialogRedirect` traces show friendly names like "Greeting" instead of raw GUIDs), your security role also needs **Read** on the **Bot Component** (`botcomponent`) table:
+
+1. In the Power Platform Admin Center, go to **Settings** → **Users + permissions** → **Security roles**.
+2. Open the security role assigned to your user (e.g. **Bot Transcript Viewer** or a custom role).
+3. On the **Custom Entities** tab (or search for "Bot Component"), set the **Read** privilege to **Organization** level.
+4. Save the role.
+
+> **Note:** If the Bot Component permission is not granted, the viewer still works — topic redirects will simply show the raw GUID instead of the resolved name.
 
 Alternatively, an admin can assign the role while [sharing the agent](https://learn.microsoft.com/en-us/microsoft-copilot-studio/admin-share-bots#assign-the-bot-transcript-viewer-security-role-during-agent-sharing).
 
@@ -322,72 +345,11 @@ When enabled, each node that a topic invokes will include `nodeTraceData` with t
 | **"popup_window_error"** | Your browser is blocking popups. Allow popups for the page, or the viewer will fall back to a redirect-based login. |
 | **"AADSTS50011: The redirect URI does not match"** | The redirect URI in your App Registration doesn't match your browser URL. Go to Azure Portal → App Registrations → Authentication and add the exact URL. |
 | **"AADSTS65001: The user or administrator has not consented"** | Ask your admin to grant admin consent for the Dynamics CRM permission, or click the consent prompt when it appears. |
-| **"HTTP 403: Forbidden"** | Your account doesn't have the Bot Transcript Viewer security role. Ask an admin to assign it. |
+| **"HTTP 403: Forbidden"** | Your account doesn't have the required security role. Ask an admin to assign the **Bot Transcript Viewer** role and optionally add **Read** on the **Bot Component** table (see Step 7). |
 | **No transcripts appear** | Check that transcripts are enabled for your environment (Settings → Advanced in Copilot Studio). Also check your date filters and that conversations are at least 30 minutes old. |
 | **Connection works but "No activities found"** | The transcript record exists but its content is empty or in an unexpected format. This can happen with very old transcripts or certain channel types. |
 
 ---
-
-## Known Limitations
-
-### Variable Tracker — Connected Agent Topics
-
-When a connected agent invokes a topic, some variables declared in `DynamicPlanReceived.toolDefinitions` (e.g. `isAnsweredByTopic`, `questionAnswer`) may show as **unset** in the Variable Tracker. This happens because:
-
-- The `DynamicPlanStepBindUpdate` for connected agent topics can have empty `arguments: {}`, so input variable bindings are not available in the trace.
-- Variables like `isAnsweredByTopic` and `questionAnswer` only appear in the bot's message text (e.g. *"the variable isAnsweredByTopic is: Yes"*), not in any structured trace field. Parsing natural language to extract variable values would be unreliable and is intentionally not attempted.
-- **Output variables** (e.g. `outputVariable`) **are** recovered from `DynamicPlanStepFinished.observation` and shown with a *(step completed)* label in the tracker tooltip.
-
-## Browser Support
-
-Requires a modern browser with support for:
-- `DecompressionStream` API (for ZIP extraction) — Chrome 80+, Edge 80+, Firefox 113+, Safari 16.4+
-- CSS custom properties
-- ES2017+
-
-## License
-
-MIT
-- **Global Variables** — any `GlobalVariableComponent` entries with their types and scopes.
-- **Connectors** — connector definitions with display name, operation count, and whether they are custom connectors.
-
----
-
-### Enriched Step Details
-
-When `botContent.yml` is loaded, individual trace steps are enriched with additional context:
-
-#### DynamicPlanReceived (Plan Details)
-- **Tool definitions** show display name (with icon if available), description, schema, and a color-coded **tool-kind badge**:
-  - **Connected Agent** (blue) — `InvokeConnectedAgentTaskAction`
-  - **External Agent / Foundry** (purple) — `InvokeExternalAgentTaskAction`
-  - **Topic** (green) — `AdaptiveDialog`
-- Tool inputs and outputs are shown with their types (Boolean, String, etc.).
-
-#### DynamicPlanStepTriggered (Step Details)
-- **Topic Name** — resolved from `botContent.yml` and highlighted in accent color.
-- **Description** — topic description from the agent definition.
-- **Invocation Type** — badge showing whether the step invokes a Connected Agent (Copilot-to-Copilot) or an External Agent (Azure AI Foundry).
-- **Connection Reference** — for external agent calls, the connection reference ID is shown.
-- **AI Thought / Reasoning** — the orchestrator's reasoning for selecting this step.
-- **Trigger Phrases** — from the agent definition, showing all phrases that can trigger this topic.
-- **Authored Flow** — a visual representation of the topic's authored action sequence (SendActivity, Question, SetVariable, BeginDialog, etc.).
-
-#### DynamicPlanStepBindUpdate (Binding Details)
-- Each argument shows an **AUTO** or **MANUAL** badge indicating whether it was auto-filled by the orchestrator or explicitly provided.
-
-#### DynamicPlanStepFinished (Step Result)
-- **Topic Name** resolved from `botContent.yml`.
-- **Execution Time** and **State** with color coding (green for completed, red for failed).
-
-#### DialogTracingInfo
-- Action types shown with friendly topic names instead of raw schema identifiers.
-
-### UI / UX
-- **Dark theme** — easy on the eyes with a GitHub-inspired dark color palette.
-- **Responsive layout** — works on desktop and mobile. On small screens, the chat pane stacks below the trace.
-- **No dependencies** — pure HTML, CSS, and JavaScript in a single file. Works offline.
-- **Connected agent context** — activities from connected agents are tracked and labeled with the agent name throughout the timeline and flow panel.
 
 ## Known Limitations
 
