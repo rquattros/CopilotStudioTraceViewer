@@ -183,6 +183,212 @@ When `botContent.yml` is loaded, individual trace steps are enriched with additi
 - **No dependencies** — pure HTML, CSS, and JavaScript in a single file. Works offline.
 - **Connected agent context** — activities from connected agents are tracked and labeled with the agent name throughout the timeline and flow panel.
 
+---
+
+## Loading Transcripts from Dataverse (Channel Conversations)
+
+In addition to uploading exported snapshots, you can connect directly to your Dataverse environment to browse and load conversation transcripts from **any channel** — Teams, Web Chat, Facebook, Telephony, DirectLine, etc.
+
+This lets you troubleshoot conversations that happened outside of the Copilot Studio test chat, using data stored in the `ConversationTranscript` Dataverse table.
+
+### What you'll see
+
+Dataverse channel transcripts include:
+- **Full conversation flow** — every user message, bot response, and adaptive card
+- **DialogTraceDetail** — which topics were triggered and how the dialog navigated
+- **DialogErrorDetail** — any errors that occurred during the conversation
+- **Variable assignments** — variable values set throughout the conversation
+- **Intent recognition** — what the system understood at each user turn
+- **Topic redirects** — when and where the conversation switched topics
+- **Session info** — engaged/unengaged status, outcome (Resolved/Escalated/Abandon), turn count
+- **CSAT data** — survey requests and responses
+- **Node-level trace data** (if [Enhanced Transcripts](#enable-enhanced-transcripts-optional) are enabled) — per-node execution with timing
+
+> **Note:** Channel transcripts do **not** include the deep orchestrator trace data available in test chat snapshots (planner decisions, raw LLM prompts, connector HTTP details, AI Builder internals, token counts). The viewer gracefully handles this — panels that require that data simply won't appear.
+
+### Prerequisites
+
+- A **Microsoft Entra ID (Azure AD) App Registration** configured as a Single-Page Application
+- The **Dynamics CRM `user_impersonation`** API permission granted to that app
+- Your user account must have the **Bot Transcript Viewer** security role in the target Dataverse environment
+- A modern browser (the same browsers that support the trace viewer)
+
+### Step-by-step setup
+
+Follow every step below. If you've never worked with Azure / Entra ID before, don't worry — this is a one-time setup that takes about 5 minutes.
+
+#### Step 1 — Open the Azure portal
+
+1. Go to [https://portal.azure.com](https://portal.azure.com) and sign in with your work or school account (the same account you use for Copilot Studio / Power Platform).
+
+#### Step 2 — Navigate to App Registrations
+
+1. In the search bar at the top, type **App registrations** and select it from the results.
+2. Click **+ New registration**.
+
+#### Step 3 — Register a new application
+
+1. **Name**: Enter a descriptive name, e.g. `Copilot Studio Trace Viewer`.
+2. **Supported account types**: Select **Accounts in this organizational directory only** (single tenant) — unless you need to use this across multiple tenants, in which case choose **Accounts in any organizational directory**.
+3. **Redirect URI**:
+   - In the **platform** dropdown, select **Single-page application (SPA)**.
+   - In the URL field, enter the URL where you access the trace viewer. Examples:
+     - If you open the file locally: `http://localhost` (or `http://127.0.0.1`)
+     - If hosted on GitHub Pages: `https://yourusername.github.io/CopilotStudioTraceViewer/`
+     - If hosted elsewhere: the exact URL of the page
+4. Click **Register**.
+
+#### Step 4 — Copy the Application (Client) ID
+
+1. After registration, you'll land on the app's **Overview** page.
+2. Find the **Application (client) ID** — it looks like `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`.
+3. Find the **Directory (tenant) ID** — right below the client ID on the same page.
+4. **Copy both values** — you'll paste them into the Trace Viewer later.
+
+#### Step 5 — Add the Dataverse API permission
+
+1. In the left sidebar, click **API permissions**.
+2. Click **+ Add a permission**.
+3. In the panel that opens, scroll down and select **Dynamics CRM** (it may also appear as "Dataverse" or "Common Data Service").
+4. Select **Delegated permissions**.
+5. Check the box next to **user_impersonation**.
+6. Click **Add permissions**.
+7. *(Optional but recommended)* Click **Grant admin consent for [your org]** if you have admin rights. This avoids each user having to individually consent. If you don't have admin rights, each user will see a one-time consent prompt on first login.
+
+#### Step 6 — Verify the Redirect URI (if needed)
+
+If you skipped the redirect URI during registration, or need to change it:
+
+1. In the left sidebar, click **Authentication**.
+2. Under **Single-page application**, check that the correct redirect URI is listed.
+3. If not, click **Add URI**, enter the correct URL, and click **Save**.
+
+> **Important:** The redirect URI must **exactly match** the URL in your browser's address bar when using the Trace Viewer (including trailing slashes). If they don't match, login will fail with a redirect error.
+
+#### Step 7 — Get the Bot Transcript Viewer security role
+
+Your user account needs permission to read conversation transcripts in Dataverse. An admin in your environment must assign you the **Bot Transcript Viewer** role:
+
+1. Go to the [Power Platform Admin Center](https://admin.powerplatform.microsoft.com/).
+2. Select your **environment**.
+3. Click **Settings** → **Users + permissions** → **Security roles**.
+4. Find and open the **Bot Transcript Viewer** role.
+5. Add your user account to this role.
+
+Alternatively, an admin can assign the role while [sharing the agent](https://learn.microsoft.com/en-us/microsoft-copilot-studio/admin-share-bots#assign-the-bot-transcript-viewer-security-role-during-agent-sharing).
+
+#### Step 8 — Connect in the Trace Viewer
+
+1. Open `index.html` (or `index-dataverse.html`) in your browser.
+2. Scroll down to the **"Load transcripts from Dataverse"** section.
+3. Enter your **Environment URL** — this is the URL of your Dataverse environment, e.g. `https://yourorg.crm.dynamics.com`. You can find it in the [Power Platform Admin Center](https://admin.powerplatform.microsoft.com/) → Environments → your environment → Environment URL.
+4. Enter the **Application (Client) ID** you copied in Step 4.
+5. Enter the **Directory (Tenant) ID** you copied in Step 4.
+6. Click **Connect**.
+6. A Microsoft login popup will appear — sign in with your work account and accept the consent prompt (first time only).
+7. Once connected, the transcript browser will load showing your recent conversations.
+
+#### Step 9 — Browse and load transcripts
+
+1. Use the **filters** to narrow down transcripts:
+   - **Agent** — select a specific agent/bot
+   - **Channel** — filter by Teams, Web Chat, DirectLine, Facebook, Telephony
+   - **Date range** — set a from/to date
+2. Click any transcript in the list to load it into the viewer.
+3. The viewer will display the conversation with all available trace data.
+
+### Enable Enhanced Transcripts (optional)
+
+For richer diagnostics, you can enable **Enhanced Transcripts** in Copilot Studio. This adds node-level execution data to the transcripts stored in Dataverse.
+
+1. Open your agent in [Copilot Studio](https://web.powerva.microsoft.com/).
+2. Go to **Settings** → **Advanced**.
+3. Under **Enhance Transcripts**, turn on **Include node-level details in transcripts**.
+
+When enabled, each node that a topic invokes will include `nodeTraceData` with the node ID, type, start/end timestamps, and topic name.
+
+### Important notes
+
+- **Transcripts are saved after 30 minutes of inactivity** — they are not real-time. If a conversation is still in progress, it won't appear yet.
+- **Default retention is 30 days** — a bulk delete job automatically removes transcripts older than 30 days. To keep them longer, follow [these instructions](https://learn.microsoft.com/en-us/microsoft-copilot-studio/analytics-transcripts-powerapps#change-the-default-retention-period) to modify the retention period.
+- **Not available for**: Dataverse for Teams environments, developer environments, or Microsoft 365 Copilot agents.
+- **Large transcripts** (>1 MB) are automatically split across multiple Dataverse records. The viewer detects this and merges them back together.
+- **Your credentials stay in your browser** — the Environment URL and Client ID are saved in `localStorage` for convenience. Tokens are stored in `sessionStorage` and cleared when you close the tab. No data is sent to any third-party server.
+
+### Troubleshooting the Dataverse connection
+
+| Problem | Solution |
+|---|---|
+| **"popup_window_error"** | Your browser is blocking popups. Allow popups for the page, or the viewer will fall back to a redirect-based login. |
+| **"AADSTS50011: The redirect URI does not match"** | The redirect URI in your App Registration doesn't match your browser URL. Go to Azure Portal → App Registrations → Authentication and add the exact URL. |
+| **"AADSTS65001: The user or administrator has not consented"** | Ask your admin to grant admin consent for the Dynamics CRM permission, or click the consent prompt when it appears. |
+| **"HTTP 403: Forbidden"** | Your account doesn't have the Bot Transcript Viewer security role. Ask an admin to assign it. |
+| **No transcripts appear** | Check that transcripts are enabled for your environment (Settings → Advanced in Copilot Studio). Also check your date filters and that conversations are at least 30 minutes old. |
+| **Connection works but "No activities found"** | The transcript record exists but its content is empty or in an unexpected format. This can happen with very old transcripts or certain channel types. |
+
+---
+
+## Known Limitations
+
+### Variable Tracker — Connected Agent Topics
+
+When a connected agent invokes a topic, some variables declared in `DynamicPlanReceived.toolDefinitions` (e.g. `isAnsweredByTopic`, `questionAnswer`) may show as **unset** in the Variable Tracker. This happens because:
+
+- The `DynamicPlanStepBindUpdate` for connected agent topics can have empty `arguments: {}`, so input variable bindings are not available in the trace.
+- Variables like `isAnsweredByTopic` and `questionAnswer` only appear in the bot's message text (e.g. *"the variable isAnsweredByTopic is: Yes"*), not in any structured trace field. Parsing natural language to extract variable values would be unreliable and is intentionally not attempted.
+- **Output variables** (e.g. `outputVariable`) **are** recovered from `DynamicPlanStepFinished.observation` and shown with a *(step completed)* label in the tracker tooltip.
+
+## Browser Support
+
+Requires a modern browser with support for:
+- `DecompressionStream` API (for ZIP extraction) — Chrome 80+, Edge 80+, Firefox 113+, Safari 16.4+
+- CSS custom properties
+- ES2017+
+
+## License
+
+MIT
+- **Global Variables** — any `GlobalVariableComponent` entries with their types and scopes.
+- **Connectors** — connector definitions with display name, operation count, and whether they are custom connectors.
+
+---
+
+### Enriched Step Details
+
+When `botContent.yml` is loaded, individual trace steps are enriched with additional context:
+
+#### DynamicPlanReceived (Plan Details)
+- **Tool definitions** show display name (with icon if available), description, schema, and a color-coded **tool-kind badge**:
+  - **Connected Agent** (blue) — `InvokeConnectedAgentTaskAction`
+  - **External Agent / Foundry** (purple) — `InvokeExternalAgentTaskAction`
+  - **Topic** (green) — `AdaptiveDialog`
+- Tool inputs and outputs are shown with their types (Boolean, String, etc.).
+
+#### DynamicPlanStepTriggered (Step Details)
+- **Topic Name** — resolved from `botContent.yml` and highlighted in accent color.
+- **Description** — topic description from the agent definition.
+- **Invocation Type** — badge showing whether the step invokes a Connected Agent (Copilot-to-Copilot) or an External Agent (Azure AI Foundry).
+- **Connection Reference** — for external agent calls, the connection reference ID is shown.
+- **AI Thought / Reasoning** — the orchestrator's reasoning for selecting this step.
+- **Trigger Phrases** — from the agent definition, showing all phrases that can trigger this topic.
+- **Authored Flow** — a visual representation of the topic's authored action sequence (SendActivity, Question, SetVariable, BeginDialog, etc.).
+
+#### DynamicPlanStepBindUpdate (Binding Details)
+- Each argument shows an **AUTO** or **MANUAL** badge indicating whether it was auto-filled by the orchestrator or explicitly provided.
+
+#### DynamicPlanStepFinished (Step Result)
+- **Topic Name** resolved from `botContent.yml`.
+- **Execution Time** and **State** with color coding (green for completed, red for failed).
+
+#### DialogTracingInfo
+- Action types shown with friendly topic names instead of raw schema identifiers.
+
+### UI / UX
+- **Dark theme** — easy on the eyes with a GitHub-inspired dark color palette.
+- **Responsive layout** — works on desktop and mobile. On small screens, the chat pane stacks below the trace.
+- **No dependencies** — pure HTML, CSS, and JavaScript in a single file. Works offline.
+- **Connected agent context** — activities from connected agents are tracked and labeled with the agent name throughout the timeline and flow panel.
+
 ## Known Limitations
 
 ### Variable Tracker — Connected Agent Topics

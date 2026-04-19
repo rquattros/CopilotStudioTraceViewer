@@ -217,6 +217,267 @@
   .chat-bubble-user .chat-bubble-citations a { color: rgba(255,255,255,0.85); }
   .chat-bubble-citations a:hover { text-decoration: underline; }
 
+  /* Dataverse Connection Panel */
+  .dv-section {
+    margin-top: 32px;
+    border-top: 1px solid var(--border);
+    padding-top: 24px;
+  }
+  .dv-section h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--heading);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .dv-section h3::before { content: '\1F310'; font-size: 16px; }
+  .dv-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-end;
+  }
+  .dv-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1 1 200px;
+    min-width: 180px;
+  }
+  .dv-field label {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+  .dv-field input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: var(--text);
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .dv-field input:focus {
+    border-color: var(--accent);
+  }
+  .dv-field input::placeholder { color: var(--text-muted); opacity: 0.6; }
+  .dv-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    white-space: nowrap;
+    height: 36px;
+  }
+  .dv-btn:hover { opacity: 0.85; }
+  .dv-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .dv-btn-secondary {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    height: 36px;
+  }
+  .dv-btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .dv-status {
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .dv-status .dot-ok { width: 8px; height: 8px; border-radius: 50%; background: var(--green); display: inline-block; }
+  .dv-status .dot-err { width: 8px; height: 8px; border-radius: 50%; background: var(--red); display: inline-block; }
+  .dv-status .dot-wait { width: 8px; height: 8px; border-radius: 50%; background: var(--orange); display: inline-block; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+  .dv-help {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 8px;
+    line-height: 1.5;
+  }
+  .dv-help a { color: var(--accent); text-decoration: none; }
+  .dv-help a:hover { text-decoration: underline; }
+  .dv-help details { margin-top: 8px; }
+  .dv-help summary { cursor: pointer; color: var(--accent); font-weight: 500; }
+
+  /* Transcript Browser */
+  .dv-browser { margin-top: 16px; }
+  .dv-browser-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+  .dv-browser-header h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--heading);
+    margin: 0;
+  }
+  .dv-filter-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .dv-filter-row select, .dv-filter-row input[type="date"], .dv-filter-row input[type="text"] {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    color: var(--text);
+    font-size: 12px;
+    font-family: inherit;
+    outline: none;
+  }
+  .dv-filter-row select:focus, .dv-filter-row input[type="date"]:focus, .dv-filter-row input[type="text"]:focus {
+    border-color: var(--accent);
+  }
+  .dv-filter-row input[type="text"] {
+    min-width: 180px;
+  }
+  .dv-session-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+  .dv-session-info .info-item label {
+    display: block;
+    font-size: 10px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+    margin-bottom: 1px;
+  }
+  .dv-session-info .info-item span {
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .dv-session-info .info-item .outcome-resolved { color: #22c55e; }
+  .dv-session-info .info-item .outcome-abandoned { color: #f59e0b; }
+  .dv-session-info .info-item .outcome-escalated { color: #ef4444; }
+  .dv-session-info .info-item .design-mode { color: #a78bfa; font-style: italic; }
+  .dv-transcript-list {
+    max-height: 320px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+  }
+  .dv-transcript-item {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.1s;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .dv-transcript-item:last-child { border-bottom: none; }
+  .dv-transcript-item:hover { background: var(--surface2); }
+  .dv-transcript-item.selected { background: rgba(88,166,255,0.1); border-left: 3px solid var(--accent); }
+  .dv-transcript-meta {
+    flex: 1;
+    min-width: 0;
+  }
+  .dv-transcript-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .dv-transcript-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    display: flex;
+    gap: 12px;
+    margin-top: 2px;
+  }
+  .dv-transcript-channel {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+    background: var(--surface2);
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+  .dv-transcript-channel.ch-msteams { background: rgba(88,77,207,0.15); color: #7b68ee; }
+  .dv-transcript-channel.ch-directline { background: rgba(88,166,255,0.12); color: var(--accent); }
+  .dv-transcript-channel.ch-facebook { background: rgba(66,103,178,0.15); color: #4267b2; }
+  .dv-transcript-channel.ch-webchat { background: rgba(63,185,80,0.12); color: var(--green); }
+  .dv-transcript-channel.ch-telephony { background: rgba(210,153,34,0.12); color: var(--orange); }
+  .dv-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .dv-pagination button {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px 10px;
+    color: var(--text);
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .dv-pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .dv-loading {
+    text-align: center;
+    padding: 24px;
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+  .dv-loading::before { content: '\23F3 '; }
+  .dv-empty {
+    text-align: center;
+    padding: 24px;
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+  .dv-or-divider {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 24px 0;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .dv-or-divider::before, .dv-or-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
   /* Upload Zone */
   #upload-zone {
     border: 2px dashed var(--border);
@@ -383,6 +644,33 @@
   .badge-error { background: rgba(248,81,73,0.15); color: var(--red); }
   .badge-info { background: rgba(139,148,158,0.15); color: var(--text-muted); }
   .badge-typing { background: rgba(139,148,158,0.1); color: var(--text-muted); }
+  .badge-session { background: rgba(63,185,80,0.15); color: var(--green); }
+  .badge-convinfo { background: rgba(88,166,255,0.15); color: var(--accent); }
+  .badge-lifecycle { background: rgba(210,153,34,0.15); color: var(--orange); }
+  .badge-dialog-trace { background: rgba(188,140,255,0.15); color: var(--purple); }
+  .badge-setvar { background: rgba(88,166,255,0.2); color: #58a6ff; }
+  .badge-send { background: rgba(63,185,80,0.18); color: var(--green); }
+  .badge-question { background: rgba(210,153,34,0.18); color: var(--orange); }
+  .badge-flow { background: rgba(139,92,246,0.18); color: #8b5cf6; }
+  .badge-aibuilder { background: rgba(236,72,153,0.18); color: #ec4899; }
+  .badge-begindialog { background: rgba(57,210,192,0.18); color: var(--cyan); }
+  .badge-condition { background: rgba(247,120,186,0.18); color: var(--pink); }
+  .badge-cancel { background: rgba(248,81,73,0.18); color: var(--red); }
+  .badge-telemetry { background: rgba(139,148,158,0.18); color: var(--text-muted); }
+  .badge-topic-redirect { background: rgba(57,210,192,0.18); color: var(--cyan); }
+
+  /* Orchestrator step visual treatment */
+  .step.orchestrator > .step-card {
+    border-left: 3px solid var(--purple);
+    border-radius: 8px;
+  }
+  .step.orchestrator > .step-card .step-header {
+    padding-left: 10px;
+  }
+
+  .filter-btn.orchestrator-filter { border-color: var(--purple); color: var(--purple); }
+  .filter-btn.orchestrator-filter:hover { background: rgba(188,140,255,0.1); }
+  .filter-btn.orchestrator-filter.active { background: var(--purple); color: #fff; border-color: var(--purple); }
 
   .step-title {
     flex: 1;
@@ -1066,6 +1354,9 @@
   .json-tree .jt-expanded > .jt-toggle::before { content: '\25BC '; }
   .json-tree .jt-children { margin-left: 16px; }
   .json-tree .jt-ellipsis { color: var(--text-muted); cursor: pointer; }
+  .jt-toolbar { display: flex; gap: 6px; margin-bottom: 6px; }
+  .jt-toolbar button { font-size: 10px; padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border); background: var(--surface2); color: var(--text-muted); cursor: pointer; }
+  .jt-toolbar button:hover { color: var(--accent); border-color: var(--accent); }
 
   /* === Waterfall / Gantt chart === */
   .waterfall-panel { 
@@ -1531,6 +1822,7 @@
   .te-topic-card-kind.te-card-topic { background: rgba(88,166,255,0.12); color: var(--accent); }
   .te-topic-card-kind.te-card-action { background: rgba(210,153,34,0.12); color: var(--orange); }
 </style>
+<script src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
 <header>
@@ -1604,6 +1896,72 @@
     <label for="file-input" class="hidden">Upload trace file</label>
     <input type="file" id="file-input" accept=".json,.zip,.yml,.yaml" multiple aria-label="Upload trace file">
   </div>
+
+  <div class="dv-or-divider">or connect to Dataverse</div>
+
+  <div class="dv-section" id="dv-section">
+    <h3>Load transcripts from Dataverse</h3>
+    <div class="dv-form" id="dv-form">
+      <div class="dv-field">
+        <label for="dv-env-url">Environment URL</label>
+        <input type="url" id="dv-env-url" placeholder="https://yourorg.crm.dynamics.com" autocomplete="url">
+      </div>
+      <div class="dv-field">
+        <label for="dv-client-id">App (Client) ID</label>
+        <input type="text" id="dv-client-id" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off">
+      </div>
+      <div class="dv-field">
+        <label for="dv-tenant-id">Tenant (Directory) ID</label>
+        <input type="text" id="dv-tenant-id" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off">
+      </div>
+      <button class="dv-btn" id="dv-connect-btn" type="button">Connect</button>
+      <button class="dv-btn-secondary" id="dv-disconnect-btn" type="button" style="display:none;">Disconnect</button>
+    </div>
+    <div id="dv-status"></div>
+    <div class="dv-help">
+      <details>
+        <summary>How do I set this up?</summary>
+        <ol style="margin:8px 0 0 16px; line-height: 2;">
+          <li>Go to <a href="https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade" target="_blank" rel="noopener">Entra ID &gt; App Registrations</a> and create a new registration</li>
+          <li>Set <strong>Redirect URI</strong> to <code>http://localhost</code> (or the URL where you host this page) as type <strong>Single-page application (SPA)</strong></li>
+          <li>Under <strong>API Permissions</strong>, add <em>Dynamics CRM &gt; user_impersonation</em> (delegated)</li>
+          <li>Copy the <strong>Application (client) ID</strong> and <strong>Directory (tenant) ID</strong> from the Overview page and paste them above</li>
+          <li>Your user account needs the <strong>Bot Transcript Viewer</strong> security role in the target environment</li>
+        </ol>
+      </details>
+    </div>
+
+    <div id="dv-browser" class="dv-browser" style="display:none;">
+      <div class="dv-browser-header">
+        <h4 id="dv-browser-title">Transcripts</h4>
+        <div class="dv-filter-row">
+          <select id="dv-filter-bot" title="Filter by agent"><option value="">All agents</option></select>
+          <select id="dv-filter-channel" title="Filter by channel">
+            <option value="">All channels</option>
+            <option value="msteams">Teams</option>
+            <option value="directline">DirectLine</option>
+            <option value="webchat">Web Chat</option>
+            <option value="facebook">Facebook</option>
+            <option value="telephony">Telephony</option>
+            <option value="powervirtualagents">Test Chat</option>
+          </select>
+          <input type="text" id="dv-filter-convid" placeholder="Conversation ID..." title="Filter by conversation ID (name field)">
+          <input type="date" id="dv-filter-from" title="From date">
+          <input type="date" id="dv-filter-to" title="To date">
+          <button class="dv-btn-secondary" id="dv-refresh-btn" type="button">&#x21BB; Refresh</button>
+        </div>
+      </div>
+      <div id="dv-transcript-list" class="dv-transcript-list">
+        <div class="dv-empty">Connect to load transcripts</div>
+      </div>
+      <div id="dv-pagination" class="dv-pagination" style="display:none;">
+        <button id="dv-prev-btn" disabled>&laquo; Prev</button>
+        <span id="dv-page-info">Page 1</span>
+        <button id="dv-next-btn">Next &raquo;</button>
+      </div>
+    </div>
+  </div>
+
   <div class="social-links-home">
     <a href="https://www.linkedin.com/in/ricardonevesalexandre/" target="_blank" rel="noopener" class="social-link" title="LinkedIn">
       <svg viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
@@ -1651,6 +2009,11 @@
 </div>
 
 <script>
+// If we're inside an MSAL auth popup, stop immediately.
+// MSAL in the opener window reads our URL directly — no code needs to run here.
+if (window.opener && window.opener !== window) {
+  document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#8b949e;background:#0d1117;"><p>Completing sign-in\u2026</p></div>';
+} else {
 (function() {
   const uploadZone = document.getElementById('upload-zone');
   const fileInput = document.getElementById('file-input');
@@ -1685,6 +2048,7 @@
   let lastLoadedData = null; // keep reference for export
   let botContentData = null; // parsed botContent.yml data
   let botComponentMap = {}; // schemaName → { displayName, description, triggerQueries, actions, inputs, outputs, kind }
+  let dvComponentCache = {}; // botId → botComponentMap snapshot (avoids re-fetching)
   let scrollCleanup = null; // to remove scroll listener on reset
   let minimapCleanup = null; // to remove minimap listeners on reset
   let keyboardCleanup = null; // to remove keyboard nav listener on reset
@@ -1709,6 +2073,584 @@
       localStorage.setItem('trace-viewer-theme', next);
       updateIcon();
     });
+  })();
+
+  // === DATAVERSE CONNECTION MODULE ===
+  const dvModule = (function() {
+    let msalInstance = null;
+    let accessToken = null;
+    let envUrl = '';
+    let transcriptCache = [];
+    let botListCache = [];
+    let currentPage = 1;
+    const pageSize = 25;
+    let totalCount = 0;
+    let nextLink = null;
+    let pageLinks = [null]; // pageLinks[0]=null (page 1 has no skiptoken)
+
+    // DOM refs
+    const dvEnvUrl = document.getElementById('dv-env-url');
+    const dvClientId = document.getElementById('dv-client-id');
+    const dvTenantId = document.getElementById('dv-tenant-id');
+    const dvConnectBtn = document.getElementById('dv-connect-btn');
+    const dvDisconnectBtn = document.getElementById('dv-disconnect-btn');
+    const dvStatus = document.getElementById('dv-status');
+    const dvBrowser = document.getElementById('dv-browser');
+    const dvBrowserTitle = document.getElementById('dv-browser-title');
+    const dvTranscriptList = document.getElementById('dv-transcript-list');
+    const dvFilterBot = document.getElementById('dv-filter-bot');
+    const dvFilterChannel = document.getElementById('dv-filter-channel');
+    const dvFilterConvId = document.getElementById('dv-filter-convid');
+    const dvFilterFrom = document.getElementById('dv-filter-from');
+    const dvFilterTo = document.getElementById('dv-filter-to');
+    const dvRefreshBtn = document.getElementById('dv-refresh-btn');
+    const dvPagination = document.getElementById('dv-pagination');
+    const dvPrevBtn = document.getElementById('dv-prev-btn');
+    const dvNextBtn = document.getElementById('dv-next-btn');
+    const dvPageInfo = document.getElementById('dv-page-info');
+
+    // Restore saved connection params
+    const savedEnv = localStorage.getItem('dv-env-url');
+    const savedClient = localStorage.getItem('dv-client-id');
+    const savedTenant = localStorage.getItem('dv-tenant-id');
+    if (savedEnv) dvEnvUrl.value = savedEnv;
+    if (savedClient) dvClientId.value = savedClient;
+    if (savedTenant) dvTenantId.value = savedTenant;
+
+    function setStatus(type, msg) {
+      const dotCls = type === 'ok' ? 'dot-ok' : type === 'err' ? 'dot-err' : 'dot-wait';
+      dvStatus.innerHTML = '<div class="dv-status"><span class="' + dotCls + '"></span> ' + msg + '</div>';
+    }
+
+    function normalizeEnvUrl(url) {
+      url = url.trim().replace(/\/+$/, '');
+      if (!url.startsWith('https://')) url = 'https://' + url;
+      return url;
+    }
+
+    function validateInputs() {
+      if (window.location.protocol === 'file:') {
+        setStatus('err', 'Dataverse connection requires HTTP. Open a terminal in this folder and run: <code style="background:var(--surface2);padding:2px 6px;border-radius:3px;">npx http-server -p 8080</code> then open <a href="http://localhost:8080" style="color:var(--accent);">http://localhost:8080</a>. Set your App Registration redirect URI to <code style="background:var(--surface2);padding:2px 6px;border-radius:3px;">http://localhost:8080</code>.');
+        return false;
+      }
+      const url = dvEnvUrl.value.trim();
+      const clientId = dvClientId.value.trim();
+      if (!url) { setStatus('err', 'Enter your environment URL'); return false; }
+      if (!clientId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clientId)) {
+        setStatus('err', 'Enter a valid Client ID (GUID format)');
+        return false;
+      }
+      const tenantId = dvTenantId.value.trim();
+      if (!tenantId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tenantId)) {
+        setStatus('err', 'Enter a valid Tenant ID (GUID format). Find it on the App Registration Overview page as "Directory (tenant) ID".');
+        return false;
+      }
+      return true;
+    }
+
+    async function connect() {
+      if (!validateInputs()) return;
+      envUrl = normalizeEnvUrl(dvEnvUrl.value);
+      const clientId = dvClientId.value.trim();
+      const tenantId = dvTenantId.value.trim();
+
+      // Save for next session
+      localStorage.setItem('dv-env-url', dvEnvUrl.value.trim());
+      localStorage.setItem('dv-client-id', clientId);
+      localStorage.setItem('dv-tenant-id', tenantId);
+
+      setStatus('wait', 'Signing in...');
+      dvConnectBtn.disabled = true;
+
+      try {
+        if (!window.msal) throw new Error('MSAL library not loaded. Check your internet connection.');
+
+        const msalConfig = {
+          auth: {
+            clientId: clientId,
+            authority: 'https://login.microsoftonline.com/' + tenantId,
+            redirectUri: window.location.origin + window.location.pathname
+          },
+          cache: { cacheLocation: 'sessionStorage', storeAuthStateInCookie: false }
+        };
+
+        msalInstance = new msal.PublicClientApplication(msalConfig);
+        await msalInstance.initialize();
+
+        // Handle redirect response (if returning from login)
+        const redirectResp = await msalInstance.handleRedirectPromise();
+        let account = redirectResp ? redirectResp.account : null;
+
+        if (!account) {
+          const accounts = msalInstance.getAllAccounts();
+          if (accounts.length > 0) {
+            account = accounts[0];
+          }
+        }
+
+        const loginRequest = {
+          scopes: [envUrl + '/.default']
+        };
+
+        if (!account) {
+          // Try popup first, fall back to redirect
+          try {
+            const loginResp = await msalInstance.loginPopup(loginRequest);
+            account = loginResp.account;
+          } catch (popupErr) {
+            if (popupErr.errorCode === 'popup_window_error' || popupErr.errorCode === 'empty_window_error') {
+              await msalInstance.loginRedirect(loginRequest);
+              return;
+            }
+            throw popupErr;
+          }
+        }
+
+        // Acquire token silently
+        const tokenRequest = {
+          scopes: [envUrl + '/.default'],
+          account: account
+        };
+
+        try {
+          const tokenResp = await msalInstance.acquireTokenSilent(tokenRequest);
+          accessToken = tokenResp.accessToken;
+        } catch (silentErr) {
+          const tokenResp = await msalInstance.acquireTokenPopup(tokenRequest);
+          accessToken = tokenResp.accessToken;
+        }
+
+        setStatus('ok', 'Connected as ' + account.username);
+        dvConnectBtn.style.display = 'none';
+        dvDisconnectBtn.style.display = '';
+        dvEnvUrl.disabled = true;
+        dvClientId.disabled = true;
+        dvTenantId.disabled = true;
+        dvBrowser.style.display = '';
+
+        // Load bot list for filter dropdown, then load transcripts
+        await loadBotList();
+        await loadTranscripts();
+
+      } catch (err) {
+        console.error('Dataverse auth error:', err);
+        setStatus('err', 'Connection failed: ' + (err.errorMessage || err.message || 'Unknown error'));
+        dvConnectBtn.disabled = false;
+      }
+    }
+
+    function disconnect() {
+      if (msalInstance) {
+        const accounts = msalInstance.getAllAccounts();
+        if (accounts.length) {
+          msalInstance.logoutPopup({ account: accounts[0] }).catch(() => {});
+        }
+      }
+      msalInstance = null;
+      accessToken = null;
+      transcriptCache = [];
+      botListCache = [];
+      currentPage = 1;
+      nextLink = null;
+      pageLinks = [null];
+
+      dvConnectBtn.style.display = '';
+      dvConnectBtn.disabled = false;
+      dvDisconnectBtn.style.display = 'none';
+      dvEnvUrl.disabled = false;
+      dvClientId.disabled = false;
+      dvTenantId.disabled = false;
+      dvBrowser.style.display = 'none';
+      dvTranscriptList.innerHTML = '<div class="dv-empty">Connect to load transcripts</div>';
+      dvPagination.style.display = 'none';
+      dvFilterBot.innerHTML = '<option value="">All agents</option>';
+      dvStatus.innerHTML = '';
+      dvComponentCache = {};
+    }
+
+    async function dvFetch(url) {
+      const resp = await fetch(url, {
+        headers: {
+          'Authorization': 'Bearer ' + accessToken,
+          'OData-MaxVersion': '4.0',
+          'OData-Version': '4.0',
+          'Accept': 'application/json',
+          'Prefer': 'odata.include-annotations="*",odata.maxpagesize=' + pageSize
+        }
+      });
+      if (resp.status === 401) {
+        // Token expired, try refresh
+        try {
+          const accounts = msalInstance.getAllAccounts();
+          if (accounts.length) {
+            const tokenResp = await msalInstance.acquireTokenSilent({
+              scopes: [envUrl + '/.default'],
+              account: accounts[0]
+            });
+            accessToken = tokenResp.accessToken;
+            // Retry
+            const retry = await fetch(url, {
+              headers: {
+                'Authorization': 'Bearer ' + accessToken,
+                'OData-MaxVersion': '4.0',
+                'OData-Version': '4.0',
+                'Accept': 'application/json',
+                'Prefer': 'odata.include-annotations="*",odata.maxpagesize=' + pageSize
+              }
+            });
+            if (!retry.ok) throw new Error('HTTP ' + retry.status + ': ' + retry.statusText);
+            return retry.json();
+          }
+        } catch (refreshErr) {
+          disconnect();
+          setStatus('err', 'Session expired. Please reconnect.');
+          throw refreshErr;
+        }
+      }
+      if (!resp.ok) throw new Error('HTTP ' + resp.status + ': ' + resp.statusText);
+      return resp.json();
+    }
+
+    async function loadBotList() {
+      try {
+        const data = await dvFetch(envUrl + '/api/data/v9.2/bots?$select=name,botid&$orderby=name asc&$top=200');
+        botListCache = data.value || [];
+        dvFilterBot.innerHTML = '<option value="">All agents</option>';
+        botListCache.forEach(bot => {
+          const opt = document.createElement('option');
+          opt.value = bot.botid;
+          opt.textContent = bot.name || bot.botid;
+          dvFilterBot.appendChild(opt);
+        });
+      } catch (err) {
+        console.warn('Could not load bot list:', err);
+      }
+    }
+
+    async function fetchBotComponents(botId) {
+      if (!botId) return;
+      if (dvComponentCache[botId]) {
+        // Restore cached map
+        const cached = dvComponentCache[botId];
+        Object.keys(cached).forEach(k => { botComponentMap[k] = cached[k]; });
+        return;
+      }
+      try {
+        const data = await dvFetch(
+          envUrl + '/api/data/v9.2/botcomponents?$select=botcomponentid,name,componenttype,schemaname&$filter=_parentbotid_value eq ' + botId + '&$top=5000'
+        );
+        const records = data.value || [];
+        const snapshot = {};
+        records.forEach(rec => {
+          const guid = (rec.botcomponentid || '').replace(/-/g, '');
+          const entry = {
+            displayName: rec.name || rec.schemaname || guid,
+            componentType: rec.componenttype,
+            schemaName: rec.schemaname
+          };
+          if (rec.schemaname) { botComponentMap[rec.schemaname] = entry; snapshot[rec.schemaname] = entry; }
+          if (guid) { botComponentMap['_id:' + guid] = entry; snapshot['_id:' + guid] = entry; }
+          if (rec.botcomponentid) { botComponentMap['_id:' + rec.botcomponentid] = entry; snapshot['_id:' + rec.botcomponentid] = entry; }
+        });
+        dvComponentCache[botId] = snapshot;
+        console.log('Loaded ' + records.length + ' bot components for bot ' + botId);
+      } catch (err) {
+        console.warn('Could not load bot components:', err);
+      }
+    }
+
+    function buildTranscriptQuery(skiptoken) {
+      let filter = "statecode eq 0";
+      const botId = dvFilterBot.value;
+      const channel = dvFilterChannel.value;
+      const convId = dvFilterConvId.value.trim();
+      const fromDate = dvFilterFrom.value;
+      const toDate = dvFilterTo.value;
+
+      if (botId) filter += " and _bot_conversationtranscriptid_value eq " + botId;
+      if (channel) filter += " and schematype eq '" + channel.replace(/'/g, "''") + "'";
+      if (convId) filter += " and contains(name,'" + convId.replace(/'/g, "''") + "')";
+      if (fromDate) filter += " and conversationstarttime ge " + fromDate + "T00:00:00Z";
+      if (toDate) filter += " and conversationstarttime le " + toDate + "T23:59:59Z";
+
+      let url = envUrl + '/api/data/v9.2/conversationtranscripts'
+        + '?$select=name,conversationstarttime,schematype,_bot_conversationtranscriptid_value,metadata,createdon'
+        + '&$orderby=conversationstarttime desc'
+        + '&$filter=' + encodeURIComponent(filter);
+
+      if (skiptoken) url += '&$skiptoken=' + skiptoken;
+      return url;
+    }
+
+    async function loadTranscripts() {
+      dvTranscriptList.innerHTML = '<div class="dv-loading">Loading transcripts...</div>';
+      try {
+        const skiptoken = pageLinks[currentPage - 1] || null;
+        const url = buildTranscriptQuery(skiptoken);
+        const data = await dvFetch(url);
+        transcriptCache = data.value || [];
+
+        // Track nextLink for pagination
+        if (data['@odata.nextLink']) {
+          const match = data['@odata.nextLink'].match(/\$skiptoken=([^&]+)/);
+          if (match && currentPage >= pageLinks.length) {
+            pageLinks.push(match[1]);
+          }
+          nextLink = data['@odata.nextLink'];
+        } else {
+          nextLink = null;
+        }
+
+        if (data['@odata.count'] != null) totalCount = data['@odata.count'];
+
+        renderTranscriptList();
+      } catch (err) {
+        dvTranscriptList.innerHTML = '<div class="dv-empty" style="color:var(--red);">Error loading transcripts: ' + escapeHtml(err.message) + '</div>';
+      }
+    }
+
+    function detectChannel(content) {
+      if (!content) return '';
+      // Parse first few activities to find channelId
+      try {
+        const activities = typeof content === 'string' ? JSON.parse(content) : (content.activities || content);
+        if (Array.isArray(activities)) {
+          for (let i = 0; i < Math.min(activities.length, 10); i++) {
+            if (activities[i].channelId) return activities[i].channelId;
+          }
+        }
+      } catch(e) {}
+      return '';
+    }
+
+    function channelBadge(channelId) {
+      if (!channelId) return '';
+      const ch = channelId.toLowerCase();
+      let cls = '';
+      let label = channelId;
+      if (ch === 'msteams') { cls = 'ch-msteams'; label = 'Teams'; }
+      else if (ch === 'directline') { cls = 'ch-directline'; label = 'DirectLine'; }
+      else if (ch === 'facebook') { cls = 'ch-facebook'; label = 'Facebook'; }
+      else if (ch === 'webchat') { cls = 'ch-webchat'; label = 'Web Chat'; }
+      else if (ch === 'telephony') { cls = 'ch-telephony'; label = 'Telephony'; }
+      else if (ch === 'powervirtualagents' || ch === 'pva-studio') { cls = 'ch-directline'; label = 'Test Chat'; }
+      return '<span class="dv-transcript-channel ' + cls + '">' + escapeHtml(label) + '</span>';
+    }
+
+    function renderTranscriptList() {
+      if (!transcriptCache.length) {
+        dvTranscriptList.innerHTML = '<div class="dv-empty">No transcripts found matching filters</div>';
+        dvPagination.style.display = 'none';
+        return;
+      }
+
+      let html = '';
+      transcriptCache.forEach((t, idx) => {
+        const startTime = t.conversationstarttime ? new Date(t.conversationstarttime).toLocaleString() : '';
+        const createdOn = t.createdon ? new Date(t.createdon).toLocaleString() : '';
+        let botName = '';
+        // Check metadata for bot name
+        if (t.metadata) {
+          try {
+            const meta = typeof t.metadata === 'string' ? JSON.parse(t.metadata) : t.metadata;
+            botName = meta.BotName || '';
+          } catch(e) {}
+        }
+        if (!botName && t['_bot_conversationtranscriptid_value@OData.Community.Display.V1.FormattedValue']) {
+          botName = t['_bot_conversationtranscriptid_value@OData.Community.Display.V1.FormattedValue'];
+        }
+        const convName = t.name || t.conversationtranscriptid || '';
+
+        html += '<div class="dv-transcript-item" data-idx="' + idx + '" data-id="' + (t.conversationtranscriptid || '') + '">'
+          + '<div class="dv-transcript-meta">'
+          + '<div class="dv-transcript-name">' + escapeHtml(botName ? botName + ' — ' + convName : convName) + '</div>'
+          + '<div class="dv-transcript-sub">'
+          + '<span>' + escapeHtml(startTime) + '</span>'
+          + channelBadge(t.schematype || '')
+          + '</div></div>'
+          + '</div>';
+      });
+
+      dvTranscriptList.innerHTML = html;
+
+      // Click handler to load a transcript
+      dvTranscriptList.querySelectorAll('.dv-transcript-item').forEach(el => {
+        el.addEventListener('click', () => loadSingleTranscript(el.dataset.id, el));
+      });
+
+      // Pagination
+      dvPagination.style.display = 'flex';
+      dvPrevBtn.disabled = currentPage <= 1;
+      dvNextBtn.disabled = !nextLink;
+      dvPageInfo.textContent = 'Page ' + currentPage;
+    }
+
+    async function loadSingleTranscript(transcriptId, el) {
+      // Highlight selected
+      dvTranscriptList.querySelectorAll('.dv-transcript-item').forEach(e => e.classList.remove('selected'));
+      if (el) el.classList.add('selected');
+
+      setStatus('wait', 'Loading transcript content...');
+      try {
+        // Fetch full content — need to also get content, metadata for this specific record
+        // Also handle batched transcripts (multiple records with same Name + ConversationStartTime but different BatchId)
+        const mainRecord = await dvFetch(
+          envUrl + '/api/data/v9.2/conversationtranscripts(' + transcriptId + ')?$select=content,metadata,name,conversationstarttime,schematype,_bot_conversationtranscriptid_value'
+        );
+
+        // Auto-fetch bot components for GUID → friendly name resolution
+        const transcriptBotId = mainRecord._bot_conversationtranscriptid_value;
+        if (transcriptBotId) {
+          await fetchBotComponents(transcriptBotId);
+        }
+
+        let allActivities = [];
+        let content = mainRecord.content;
+
+        // Parse main content
+        const parsed = parseTranscriptContent(content);
+        allActivities = parsed;
+
+        // Check if there are batched records (split transcripts > 1MB)
+        let meta = {};
+        if (mainRecord.metadata) {
+          try { meta = typeof mainRecord.metadata === 'string' ? JSON.parse(mainRecord.metadata) : mainRecord.metadata; } catch(e) {}
+        }
+        if (meta.BatchId != null) {
+          // Fetch all records with same Name and ConversationStartTime
+          const name = mainRecord.name;
+          const startTime = mainRecord.conversationstarttime;
+          if (name && startTime) {
+            const batchFilter = "name eq '" + name.replace(/'/g, "''") + "' and conversationstarttime eq " + startTime;
+            const batchData = await dvFetch(
+              envUrl + '/api/data/v9.2/conversationtranscripts?$select=content,metadata&$filter=' + encodeURIComponent(batchFilter) + '&$orderby=createdon asc'
+            );
+            if (batchData.value && batchData.value.length > 1) {
+              // Sort by BatchId, merge
+              const sorted = batchData.value.sort((a, b) => {
+                let bA = 0, bB = 0;
+                try { bA = JSON.parse(a.metadata).BatchId || 0; } catch(e) {}
+                try { bB = JSON.parse(b.metadata).BatchId || 0; } catch(e) {}
+                return bA - bB;
+              });
+              allActivities = [];
+              sorted.forEach(rec => {
+                const acts = parseTranscriptContent(rec.content);
+                allActivities = allActivities.concat(acts);
+              });
+            }
+          }
+        }
+
+        if (!allActivities.length) {
+          setStatus('err', 'No activities found in transcript');
+          return;
+        }
+
+        // Wrap in the format processDialog expects
+        const dialogData = { activities: allActivities };
+        currentFileName = (meta.BotName ? meta.BotName + ' — ' : '') + (mainRecord.name || transcriptId);
+
+        // Hide the Dataverse section and process
+        document.getElementById('dv-section').classList.add('hidden');
+        processDialog(dialogData);
+        const compCount = Object.keys(dvComponentCache).length ? Object.keys(botComponentMap).filter(k => k.startsWith('_id:')).length : 0;
+        setStatus('ok', 'Transcript loaded (' + allActivities.length + ' activities' + (compCount ? ', ' + compCount + ' components' : '') + ')');
+
+      } catch (err) {
+        console.error('Failed to load transcript:', err);
+        setStatus('err', 'Failed to load transcript: ' + (err.message || 'Unknown error'));
+      }
+    }
+
+    function parseTranscriptContent(content) {
+      if (!content) return [];
+      try {
+        const parsed = typeof content === 'string' ? JSON.parse(content) : content;
+        // Content can be: an array of activities, or an object with .activities array
+        if (Array.isArray(parsed)) return parsed;
+        if (parsed.activities && Array.isArray(parsed.activities)) return parsed.activities;
+        // Some transcripts wrap each activity line-by-line (NDJSON-like)
+        return [];
+      } catch(e) {
+        // Try line-by-line parsing (some exports have one JSON object per line)
+        try {
+          const lines = content.split('\n').filter(l => l.trim());
+          const activities = [];
+          lines.forEach(line => {
+            try { activities.push(JSON.parse(line)); } catch(e2) {}
+          });
+          return activities;
+        } catch(e2) {}
+        return [];
+      }
+    }
+
+    // Event listeners
+    dvConnectBtn.addEventListener('click', connect);
+    dvDisconnectBtn.addEventListener('click', disconnect);
+    dvRefreshBtn.addEventListener('click', () => { currentPage = 1; pageLinks = [null]; loadTranscripts(); });
+    dvFilterBot.addEventListener('change', () => { currentPage = 1; pageLinks = [null]; loadTranscripts(); });
+    dvFilterChannel.addEventListener('change', () => { currentPage = 1; pageLinks = [null]; loadTranscripts(); });
+    dvFilterConvId.addEventListener('keydown', (e) => { if (e.key === 'Enter') { currentPage = 1; pageLinks = [null]; loadTranscripts(); } });
+    dvFilterFrom.addEventListener('change', () => { currentPage = 1; pageLinks = [null]; loadTranscripts(); });
+    dvFilterTo.addEventListener('change', () => { currentPage = 1; pageLinks = [null]; loadTranscripts(); });
+    dvPrevBtn.addEventListener('click', () => { if (currentPage > 1) { currentPage--; loadTranscripts(); } });
+    dvNextBtn.addEventListener('click', () => { if (nextLink) { currentPage++; loadTranscripts(); } });
+
+    // Enter key in form fields triggers connect
+    dvEnvUrl.addEventListener('keydown', e => { if (e.key === 'Enter') connect(); });
+    dvClientId.addEventListener('keydown', e => { if (e.key === 'Enter') connect(); });
+    dvTenantId.addEventListener('keydown', e => { if (e.key === 'Enter') connect(); });
+
+    // Handle redirect response on page load (in case login used redirect flow)
+    if (window.msal) {
+      (async function handleRedirect() {
+        try {
+          const savedClientId = localStorage.getItem('dv-client-id');
+          const savedEnvUrl = localStorage.getItem('dv-env-url');
+          const savedTenantId = localStorage.getItem('dv-tenant-id');
+          if (!savedClientId || !savedEnvUrl || !savedTenantId) return;
+
+          const tempMsal = new msal.PublicClientApplication({
+            auth: {
+              clientId: savedClientId,
+              authority: 'https://login.microsoftonline.com/' + savedTenantId,
+              redirectUri: window.location.origin + window.location.pathname
+            },
+            cache: { cacheLocation: 'sessionStorage', storeAuthStateInCookie: false }
+          });
+          await tempMsal.initialize();
+          const resp = await tempMsal.handleRedirectPromise();
+          if (resp && resp.account) {
+            // Auto-reconnect
+            msalInstance = tempMsal;
+            envUrl = normalizeEnvUrl(savedEnvUrl);
+            const tokenResp = await msalInstance.acquireTokenSilent({
+              scopes: [envUrl + '/.default'],
+              account: resp.account
+            });
+            accessToken = tokenResp.accessToken;
+            setStatus('ok', 'Connected as ' + resp.account.username);
+            dvConnectBtn.style.display = 'none';
+            dvDisconnectBtn.style.display = '';
+            dvEnvUrl.disabled = true;
+            dvClientId.disabled = true;
+            dvTenantId.disabled = true;
+            dvBrowser.style.display = '';
+            await loadBotList();
+            await loadTranscripts();
+          }
+        } catch(e) {
+          console.warn('Redirect handler:', e);
+        }
+      })();
+    }
+
+    return {
+      disconnect: disconnect,
+      isConnected: function() { return !!accessToken; }
+    };
   })();
 
   // === KEYBOARD SHORTCUTS OVERLAY ===
@@ -2451,6 +3393,13 @@
     return schemaName.split('.').pop();
   }
 
+  function friendlyComponentId(guid) {
+    if (!guid) return null;
+    const normalized = guid.replace(/-/g, '');
+    const entry = botComponentMap['_id:' + normalized] || botComponentMap['_id:' + guid];
+    return entry ? entry.displayName : null;
+  }
+
   // === EXTRACT BOTH FILES FROM ZIP ===
   async function extractFromZip(arrayBuf) {
     const bytes = new Uint8Array(arrayBuf);
@@ -2510,8 +3459,14 @@
   }
 
   // Get the best available timestamp from an activity
+  // Dataverse transcripts use Unix epoch seconds (e.g. 1776006505); convert to ms for Date()
   function getTs(act) {
-    return act.timestamp || act.localTimestamp || (act.channelData && act.channelData['webchat:internal:received-at']) || '';
+    let ts = act.timestamp || act.localTimestamp || (act.channelData && act.channelData['webchat:internal:received-at']) || '';
+    if (typeof ts === 'number' && ts > 0 && ts < 1e11) {
+      // Unix seconds — convert to ISO string
+      ts = new Date(ts * 1000).toISOString();
+    }
+    return ts;
   }
 
   function escapeHtml(s) {
@@ -2553,35 +3508,141 @@
 
   // Helper: detect if a message activity is from the user.
   // In Teams channels, from.role may be absent; treat non-bot, non-debug senders as users.
+  // Dataverse transcripts use numeric roles: 0 = bot, 1 = user.
   function isUserMsg(act) {
     if (!act || act.type !== 'message' || !act.from) return false;
-    if (act.from.role === 'user') return true;
-    if (act.from.role === 'bot' || act.from.role === 'debug') return false;
+    const role = act.from.role;
+    if (role === 'user' || role === 1) return true;
+    if (role === 'bot' || role === 0 || role === 'debug') return false;
     return true;  // no role field — assume user
+  }
+
+  // Map DialogTracingInfo/DialogTracing action types to badge config
+  // Priority order for mixed-type events (highest priority wins)
+  var _actionTypePriority = ['InvokeAIBuilderModelAction','InvokeFlowAction','BeginDialog','Question','SendActivity','SetVariable','ConditionGroup','ConditionItem','CancelAllDialogs','LogCustomTelemetryEvent'];
+  var _actionTypeBadge = {
+    SetVariable:              { cat: 'setvar',      badge: 'Set Variable',    badgeCls: 'badge-setvar' },
+    SendActivity:             { cat: 'send',        badge: 'Send Activity',   badgeCls: 'badge-send' },
+    Question:                 { cat: 'question',    badge: 'Question',        badgeCls: 'badge-question' },
+    InvokeFlowAction:         { cat: 'flow',        badge: 'Invoke Flow',     badgeCls: 'badge-flow' },
+    InvokeAIBuilderModelAction:{ cat: 'aibuilder',  badge: 'AI Builder',      badgeCls: 'badge-aibuilder' },
+    BeginDialog:              { cat: 'begindialog', badge: 'Begin Dialog',    badgeCls: 'badge-begindialog' },
+    ConditionGroup:           { cat: 'condition',   badge: 'Condition',       badgeCls: 'badge-condition' },
+    ConditionItem:            { cat: 'condition',   badge: 'Condition Branch', badgeCls: 'badge-condition' },
+    CancelAllDialogs:         { cat: 'cancel',      badge: 'Cancel Dialogs',  badgeCls: 'badge-cancel' },
+    LogCustomTelemetryEvent:  { cat: 'telemetry',   badge: 'Log Telemetry',   badgeCls: 'badge-telemetry' },
+  };
+
+  function classifyDialogActions(actions) {
+    if (!actions || !actions.length) return { cat: 'info', badge: 'Dialog Trace', badgeCls: 'badge-info' };
+    // All same type → use that type's badge
+    const types = new Set(actions.map(a => a.actionType));
+    if (types.size === 1) {
+      const t = actions[0].actionType;
+      return _actionTypeBadge[t] || { cat: 'info', badge: t || 'Dialog Trace', badgeCls: 'badge-info' };
+    }
+    // Mixed → pick highest-priority action type
+    for (const t of _actionTypePriority) {
+      if (types.has(t)) {
+        const base = _actionTypeBadge[t];
+        return { cat: base.cat, badge: base.badge + ' +' + (types.size - 1), badgeCls: base.badgeCls };
+      }
+    }
+    return { cat: 'info', badge: 'Dialog Trace', badgeCls: 'badge-info' };
   }
 
   function classifyActivity(act) {
     if (act.type === 'message') {
       if (isUserMsg(act)) return { cat: 'user-message', badge: 'User Message', badgeCls: 'badge-user' };
-      if (act.from && act.from.role === 'bot') return { cat: 'bot-message', badge: 'Bot Response', badgeCls: 'badge-bot' };
-      if (act.from && act.from.role === 'debug') return { cat: 'info', badge: 'Debug', badgeCls: 'badge-info' };
+      const role = act.from && act.from.role;
+      if (role === 'bot' || role === 0) return { cat: 'bot-message', badge: 'Bot Response', badgeCls: 'badge-bot' };
+      if (role === 'debug') return { cat: 'info', badge: 'Debug', badgeCls: 'badge-info' };
       return { cat: 'bot-message', badge: 'Message', badgeCls: 'badge-bot' };
     }
     if (act.type === 'typing') return { cat: 'typing', badge: 'Typing/Stream', badgeCls: 'badge-typing' };
     if (act.type === 'event') {
       const vt = act.valueType || act.name || '';
-      if (vt === 'DynamicPlanReceived' || vt === 'DynamicPlanReceivedDebug') return { cat: 'plan', badge: 'Plan', badgeCls: 'badge-plan' };
-      if (vt === 'DynamicPlanStepTriggered') return { cat: 'thought', badge: 'Step Triggered', badgeCls: 'badge-thought' };
-      if (vt === 'DynamicPlanStepBindUpdate') return { cat: 'tool', badge: 'Arguments Bound', badgeCls: 'badge-tool' };
-      if (vt === 'DynamicPlanStepFinished') return { cat: 'tool', badge: 'Step Finished', badgeCls: 'badge-tool' };
-      if (vt === 'DynamicPlanFinished') return { cat: 'plan', badge: 'Plan Complete', badgeCls: 'badge-plan' };
+      if (vt === 'DynamicPlanReceived' || vt === 'DynamicPlanReceivedDebug') return { cat: 'plan', badge: 'Plan', badgeCls: 'badge-plan', isOrchestrator: true };
+      if (vt === 'DynamicPlanStepTriggered') return { cat: 'thought', badge: 'Step Triggered', badgeCls: 'badge-thought', isOrchestrator: true };
+      if (vt === 'DynamicPlanStepBindUpdate') return { cat: 'tool', badge: 'Arguments Bound', badgeCls: 'badge-tool', isOrchestrator: true };
+      if (vt === 'DynamicPlanStepFinished') return { cat: 'tool', badge: 'Step Finished', badgeCls: 'badge-tool', isOrchestrator: true };
+      if (vt === 'DynamicPlanFinished') return { cat: 'plan', badge: 'Plan Complete', badgeCls: 'badge-plan', isOrchestrator: true };
       if (vt === 'UniversalSearchToolTraceData') return { cat: 'search', badge: 'Search', badgeCls: 'badge-search' };
       if (vt === 'AIBuilderTraceData') return { cat: 'tool', badge: 'AI Builder', badgeCls: 'badge-tool' };
-      if (vt === 'DialogTracingInfo') return { cat: 'info', badge: 'Dialog Trace', badgeCls: 'badge-info' };
+      if (vt === 'DialogTracingInfo') return classifyDialogActions((act.value && act.value.actions) || []);
       if (vt === 'GenerativeAnswersSupportData' || act.name === 'GenerativeAnswersSupportData') return { cat: 'info', badge: 'Gen Answers', badgeCls: 'badge-info' };
+      if (act.name === 'startConversation') return { cat: 'lifecycle', badge: 'Start Conversation', badgeCls: 'badge-lifecycle' };
+      if (act.name === 'DialogTracing') return classifyDialogActions((act.value && act.value.actions) || []);
+      if (act.name === 'ProtocolInfo') return { cat: 'info', badge: 'Protocol', badgeCls: 'badge-info' };
       return { cat: 'info', badge: vt || 'Event', badgeCls: 'badge-info' };
     }
+    if (act.type === 'trace') {
+      const vt = act.valueType || '';
+      if (vt === 'SessionInfo') return { cat: 'session', badge: 'Session Info', badgeCls: 'badge-session' };
+      if (vt === 'ConversationInfo') return { cat: 'convinfo', badge: 'Conversation Info', badgeCls: 'badge-convinfo' };
+      if (vt === 'VariableAssignment') return { cat: 'setvar', badge: 'Var Assignment', badgeCls: 'badge-setvar' };
+      if (vt === 'DialogRedirect') return { cat: 'thought', badge: 'Topic Redirect', badgeCls: 'badge-topic-redirect' };
+    }
     return { cat: 'info', badge: act.type || 'Unknown', badgeCls: 'badge-info' };
+  }
+
+  // Shared title builder for DialogTracingInfo / DialogTracing actions
+  function buildDialogActionsTitle(actions) {
+    if (!actions.length) return 'Dialog trace (no actions)';
+    const primary = actions[0];
+    const topic = friendlyTopicName(primary.topicId) || String(primary.topicId || '').split('.').pop();
+    const t = primary.actionType;
+
+    // Error in any action? Show it
+    const errAction = actions.find(a => a.exception);
+    if (errAction) {
+      const errType = errAction.actionType === 'InvokeAIBuilderModelAction' ? '\uD83E\uDDE0 AI Builder' : errAction.actionType;
+      return errType + ' \u274C ' + truncate(errAction.exception, 80);
+    }
+
+    // Type-specific title formatting
+    const types = new Set(actions.map(a => a.actionType));
+    if (types.size === 1) {
+      switch (t) {
+        case 'SetVariable': {
+          const vars = actions.map(a => {
+            const ds = (a.variableState && a.variableState.dialogState) || {};
+            const gs = (a.variableState && a.variableState.globalState) || {};
+            const allVars = Object.assign({}, ds, gs);
+            return Object.entries(allVars).map(([k, v]) => k + ' = ' + truncate(String(v), 40)).join(', ');
+          }).filter(Boolean).join('; ');
+          return 'Set variable' + (vars ? ': ' + truncate(vars, 100) : '') + ' (' + topic + ')';
+        }
+        case 'SendActivity':
+          return 'Send message (' + topic + ')';
+        case 'Question':
+          return 'Question prompt (' + topic + ')';
+        case 'InvokeFlowAction':
+          return 'Invoke Power Automate flow (' + topic + ')';
+        case 'InvokeAIBuilderModelAction': {
+          const vs = (primary.variableState && primary.variableState.dialogState) || {};
+          const inputs = Object.entries(vs).map(([k, v]) => k + '=' + truncate(String(v), 30)).join(', ');
+          return 'AI Builder call' + (inputs ? ': ' + truncate(inputs, 80) : '') + ' (' + topic + ')';
+        }
+        case 'BeginDialog':
+          return 'Begin dialog \u2192 ' + topic;
+        case 'ConditionGroup':
+          return 'Condition check (' + topic + ')';
+        case 'ConditionItem': {
+          const rt = primary.resultTrace || {};
+          const expr = rt.conditionExpression || '';
+          return 'Condition branch' + (expr ? ': ' + truncate(expr, 80) : '') + ' (' + topic + ')';
+        }
+        case 'CancelAllDialogs':
+          return 'Cancel all dialogs (' + topic + ')';
+        case 'LogCustomTelemetryEvent':
+          return 'Log telemetry event (' + topic + ')';
+        default:
+          return t + ' (' + topic + ')';
+      }
+    }
+    // Mixed types
+    return actions.map(a => a.actionType).join(' \u2192 ') + ' (' + topic + ')';
   }
 
   function buildTitle(act, cls) {
@@ -2630,16 +3691,7 @@
                     (((v.outputKnowledgeSources || []).length) ? 'sources: ' + v.outputKnowledgeSources.length : '0 results');
       return 'Search executed — ' + count;
     }
-    if (vt === 'DialogTracingInfo') {
-      const actions = (act.value && act.value.actions) || [];
-      if (actions.length === 0) return 'Dialog trace (no actions)';
-      var hasAibError = actions.some(function(a) { return a.actionType === 'InvokeAIBuilderModelAction' && a.exception; });
-      if (hasAibError) {
-        var aibAction = actions.find(function(a) { return a.actionType === 'InvokeAIBuilderModelAction' && a.exception; });
-        return '\uD83E\uDDE0 AI Builder \u274C ' + truncate(aibAction.exception, 80);
-      }
-      return 'Dialog trace: ' + actions.map(a => a.actionType + ' (' + (friendlyTopicName(a.topicId) || String(a.topicId || '').split('.').pop()) + ')').join(', ');
-    }
+    if (vt === 'DialogTracingInfo') return buildDialogActionsTitle((act.value && act.value.actions) || []);
     if (vt === 'AIBuilderTraceData') {
       const v = act.value || {};
       const out = v.outputText || '';
@@ -2649,7 +3701,164 @@
       const v = act.value || {};
       return 'Generative answers: ' + (v.gptAnswerState || v.completionState || 'unknown');
     }
+    // ConversationInfo trace
+    if (act.type === 'trace' && vt === 'ConversationInfo') {
+      const v = act.value || {};
+      const parts = [];
+      if (v.locale) parts.push('Locale: ' + v.locale);
+      if (v.isDesignMode) parts.push('Design Mode');
+      return 'Conversation Info' + (parts.length ? ' \u2014 ' + parts.join(', ') : '');
+    }
+    // SessionInfo trace
+    if (act.type === 'trace' && vt === 'SessionInfo') {
+      const v = act.value || {};
+      const parts = [];
+      if (v.outcome) parts.push(v.outcome);
+      if (v.type) parts.push(v.type);
+      if (v.turnCount != null) parts.push(v.turnCount + ' turns');
+      return 'Session Info' + (parts.length ? ' \u2014 ' + parts.join(', ') : '');
+    }
+    // startConversation event
+    if (act.name === 'startConversation') {
+      return 'Start Conversation' + (act.channelId ? ' (' + act.channelId + ')' : '');
+    }
+    // DialogTracing event (non-debug)
+    if (act.name === 'DialogTracing') return buildDialogActionsTitle((act.value && act.value.actions) || []);
+    // VariableAssignment trace
+    if (act.type === 'trace' && vt === 'VariableAssignment' && act.value) {
+      const v = act.value;
+      const scope = v.type === 'global' ? 'Global' : 'Topic';
+      return scope + ' variable: ' + (v.name || '') + ' = ' + truncate(String(v.newValue || ''), 80);
+    }
+    // DialogRedirect trace
+    if (act.type === 'trace' && vt === 'DialogRedirect' && act.value) {
+      const targetId = act.value.targetDialogId || '';
+      const resolved = friendlyComponentId(targetId);
+      return resolved ? '\u2192 ' + resolved : 'Redirect \u2192 ' + targetId.substring(0, 8) + '\u2026';
+    }
     return vt || act.name || act.type || 'Activity';
+  }
+
+  // Color mapping for action type border accents
+  var _actionBorderColor = {
+    SetVariable: 'var(--accent)',
+    SendActivity: 'var(--green)',
+    Question: 'var(--orange)',
+    InvokeFlowAction: '#8b5cf6',
+    InvokeAIBuilderModelAction: '#ec4899',
+    BeginDialog: 'var(--cyan)',
+    ConditionGroup: 'var(--pink)',
+    ConditionItem: 'var(--pink)',
+    CancelAllDialogs: 'var(--red)',
+    LogCustomTelemetryEvent: 'var(--text-muted)',
+  };
+
+  // Friendly labels for action types
+  var _actionTypeLabel = {
+    SetVariable: 'Set Variable',
+    SendActivity: 'Send Activity',
+    Question: 'Question',
+    InvokeFlowAction: 'Invoke Flow',
+    InvokeAIBuilderModelAction: 'AI Builder Model',
+    BeginDialog: 'Begin Dialog',
+    ConditionGroup: 'Condition Group',
+    ConditionItem: 'Condition Branch',
+    CancelAllDialogs: 'Cancel All Dialogs',
+    LogCustomTelemetryEvent: 'Log Telemetry',
+  };
+
+  // Shared detail renderer for DialogTracingInfo / DialogTracing actions
+  function renderDialogActionsDetail(actions) {
+    if (!actions.length) return '';
+    var types = new Set(actions.map(a => a.actionType));
+    var singleType = types.size === 1 ? actions[0].actionType : null;
+    var heading = singleType ? (_actionTypeLabel[singleType] || singleType) + ' Details' : 'Dialog Actions (' + actions.length + ')';
+
+    var h = '<div class="detail-section"><h4>' + heading + '</h4><div class="detail-content">';
+    actions.forEach(function(a) {
+      var bc = _actionBorderColor[a.actionType] || 'var(--purple)';
+      h += '<div style="margin-bottom:10px;padding:8px;background:var(--bg);border-radius:4px;border-left:3px solid ' + bc + ';">';
+
+      // Common header
+      if (a.actionType) h += '<div class="kv-row"><span class="kv-key">Action Type</span><span class="kv-val"><strong>' + escapeHtml(_actionTypeLabel[a.actionType] || a.actionType) + '</strong></span></div>';
+      if (a.actionId) h += '<div class="kv-row"><span class="kv-key">Action ID</span><span class="kv-val"><code>' + escapeHtml(a.actionId) + '</code></span></div>';
+      if (a.topicId) h += '<div class="kv-row"><span class="kv-key">Topic</span><span class="kv-val"><code>' + escapeHtml(a.topicId) + '</code>' + (friendlyTopicName(a.topicId) ? ' <strong style="color:var(--accent);">(' + escapeHtml(friendlyTopicName(a.topicId)) + ')</strong>' : '') + '</span></div>';
+      if (a.triggerId) h += '<div class="kv-row"><span class="kv-key">Trigger</span><span class="kv-val">' + escapeHtml(a.triggerId) + '</span></div>';
+      if (a.dialogComponentId) h += '<div class="kv-row"><span class="kv-key">Dialog Component</span><span class="kv-val"><code style="font-size:10px;">' + escapeHtml(a.dialogComponentId) + '</code></span></div>';
+
+      // Exception
+      if (a.exception) {
+        if (a.actionType === 'InvokeAIBuilderModelAction') {
+          h += '<div style="margin-top:4px;padding:8px;background:rgba(236,72,153,0.06);border:1px solid rgba(236,72,153,0.2);border-radius:6px;">';
+          h += '<div style="font-size:11px;font-weight:600;color:#ec4899;margin-bottom:4px;">\uD83E\uDDE0 AI Builder Error</div>';
+          h += '<div style="color:var(--red);font-size:12px;">' + escapeHtml(a.exception) + '</div>';
+          var paramMatch = (a.exception || '').match(/parameter with name '([^']+)'/i);
+          if (paramMatch) h += '<div style="margin-top:4px;padding:4px 8px;background:rgba(248,81,73,0.08);border-radius:4px;font-size:11px;"><span style="color:var(--red);font-weight:600;">\u26A0 Missing required input:</span> <code style="color:var(--red);">' + escapeHtml(paramMatch[1]) + '</code></div>';
+          h += '</div>';
+        } else {
+          h += '<div class="kv-row"><span class="kv-key" style="color:var(--red);">Exception</span><span class="kv-val" style="color:var(--red);">' + escapeHtml(a.exception) + '</span></div>';
+        }
+      }
+
+      // ConditionItem-specific: show condition expression from resultTrace
+      if (a.actionType === 'ConditionItem' && a.resultTrace && a.resultTrace.conditionExpression) {
+        var rt = a.resultTrace;
+        h += '<div class="kv-row"><span class="kv-key" style="color:var(--pink);">Condition</span><span class="kv-val"><code>' + escapeHtml(rt.conditionExpression) + '</code></span></div>';
+        if (rt.conditionBranchDisplayName) h += '<div class="kv-row"><span class="kv-key">Branch</span><span class="kv-val">' + escapeHtml(rt.conditionBranchDisplayName) + '</span></div>';
+        if (rt.conditionGroupId) h += '<div class="kv-row"><span class="kv-key">Group ID</span><span class="kv-val"><code>' + escapeHtml(rt.conditionGroupId) + '</code></span></div>';
+      }
+
+      // Condition exits
+      if (a.conditionItemExit && a.conditionItemExit.length) {
+        h += '<div class="kv-row"><span class="kv-key">Condition Exits</span><span class="kv-val">' + escapeHtml(JSON.stringify(a.conditionItemExit)) + '</span></div>';
+      }
+
+      // Variable state — type-specific rendering
+      if (a.variableState) {
+        var ds = a.variableState.dialogState || {};
+        var gs = a.variableState.globalState || {};
+        var hasVars = Object.keys(ds).length || Object.keys(gs).length;
+        if (hasVars) {
+          if (a.actionType === 'SetVariable') {
+            // Show each variable individually with icons
+            Object.entries(ds).forEach(function(entry) {
+              h += '<div class="kv-row"><span class="kv-key" style="color:var(--accent);">&#x1F4CC; ' + escapeHtml(entry[0]) + '</span><span class="kv-val"><code>' + escapeHtml(entry[1] == null ? 'null' : typeof entry[1] === 'object' ? JSON.stringify(entry[1]) : String(entry[1])) + '</code> <span style="font-size:10px;color:var(--text-muted);">(dialog)</span></span></div>';
+            });
+            Object.entries(gs).forEach(function(entry) {
+              h += '<div class="kv-row"><span class="kv-key" style="color:var(--accent);">&#x1F310; ' + escapeHtml(entry[0]) + '</span><span class="kv-val"><code>' + escapeHtml(entry[1] == null ? 'null' : typeof entry[1] === 'object' ? JSON.stringify(entry[1]) : String(entry[1])) + '</code> <span style="font-size:10px;color:var(--text-muted);">(global)</span></span></div>';
+            });
+          } else if (a.actionType === 'InvokeAIBuilderModelAction') {
+            // Show input variables as labeled params
+            Object.entries(ds).forEach(function(entry) {
+              h += '<div class="kv-row"><span class="kv-key" style="color:#ec4899;">Input: ' + escapeHtml(entry[0]) + '</span><span class="kv-val">' + escapeHtml(entry[1] == null ? 'null' : typeof entry[1] === 'object' ? JSON.stringify(entry[1]) : String(entry[1])) + '</span></div>';
+            });
+            Object.entries(gs).forEach(function(entry) {
+              h += '<div class="kv-row"><span class="kv-key" style="color:#ec4899;">Global: ' + escapeHtml(entry[0]) + '</span><span class="kv-val">' + escapeHtml(entry[1] == null ? 'null' : typeof entry[1] === 'object' ? JSON.stringify(entry[1]) : String(entry[1])) + '</span></div>';
+            });
+          } else if (a.actionType === 'Question') {
+            // Show captured answers
+            Object.entries(ds).forEach(function(entry) {
+              h += '<div class="kv-row"><span class="kv-key" style="color:var(--orange);">Answer: ' + escapeHtml(entry[0]) + '</span><span class="kv-val">' + escapeHtml(entry[1] == null ? 'null' : typeof entry[1] === 'object' ? JSON.stringify(entry[1]) : String(entry[1])) + '</span></div>';
+            });
+            Object.entries(gs).forEach(function(entry) {
+              h += '<div class="kv-row"><span class="kv-key" style="color:var(--orange);">Global: ' + escapeHtml(entry[0]) + '</span><span class="kv-val">' + escapeHtml(entry[1] == null ? 'null' : typeof entry[1] === 'object' ? JSON.stringify(entry[1]) : String(entry[1])) + '</span></div>';
+            });
+          } else {
+            // Generic variable display
+            h += '<div class="kv-row"><span class="kv-key">Variables</span><span class="kv-val"><pre style="margin:0;font-size:11px;">' + escapeHtml(JSON.stringify(a.variableState, null, 2)) + '</pre></span></div>';
+          }
+        }
+      }
+
+      // Result trace (for non-ConditionItem — those are handled above)
+      if (a.resultTrace && typeof a.resultTrace === 'object' && Object.keys(a.resultTrace).length && a.actionType !== 'ConditionItem') {
+        h += '<div class="kv-row"><span class="kv-key">Result Trace</span><span class="kv-val"><pre style="margin:0;font-size:11px;">' + escapeHtml(JSON.stringify(a.resultTrace, null, 2)) + '</pre></span></div>';
+      }
+
+      h += '</div>';
+    });
+    h += '</div></div>';
+    return h;
   }
 
   function buildDetail(act, cls) {
@@ -2681,6 +3890,93 @@
     // Typing with text
     if (cls.cat === 'typing' && act.text) {
       html += '<div class="detail-section"><h4>Streaming Content</h4><div class="detail-content message-text">' + simpleMarkdown(act.text) + '</div></div>';
+    }
+
+    // ConversationInfo trace
+    if (act.type === 'trace' && vt === 'ConversationInfo' && act.value) {
+      const v = act.value;
+      html += '<div class="detail-section"><h4>Conversation Info</h4><div class="detail-content">';
+      html += '<div class="kv-row"><span class="kv-key">Design Mode</span><span class="kv-val">' + (v.isDesignMode ? '&#9881; Yes (Test Chat)' : 'No (Production)') + '</span></div>';
+      if (v.locale) html += '<div class="kv-row"><span class="kv-key">Locale</span><span class="kv-val">' + escapeHtml(v.locale) + '</span></div>';
+      // Render any other properties
+      Object.keys(v).forEach(k => {
+        if (k === 'isDesignMode' || k === 'locale') return;
+        html += '<div class="kv-row"><span class="kv-key">' + escapeHtml(k) + '</span><span class="kv-val">' + escapeHtml(typeof v[k] === 'object' ? JSON.stringify(v[k]) : String(v[k])) + '</span></div>';
+      });
+      html += '</div></div>';
+    }
+
+    // SessionInfo trace
+    if (act.type === 'trace' && vt === 'SessionInfo' && act.value) {
+      const v = act.value;
+      html += '<div class="detail-section"><h4>Session Summary</h4><div class="detail-content">';
+      if (v.outcome) {
+        const cls2 = v.outcome.toLowerCase() === 'resolved' ? 'outcome-resolved' : v.outcome.toLowerCase() === 'abandoned' ? 'outcome-abandoned' : v.outcome.toLowerCase() === 'escalated' ? 'outcome-escalated' : '';
+        html += '<div class="kv-row"><span class="kv-key">Outcome</span><span class="kv-val"><strong class="' + cls2 + '">' + escapeHtml(v.outcome) + '</strong></span></div>';
+      }
+      if (v.outcomeReason) html += '<div class="kv-row"><span class="kv-key">Outcome Reason</span><span class="kv-val">' + escapeHtml(v.outcomeReason) + '</span></div>';
+      if (v.type) html += '<div class="kv-row"><span class="kv-key">Session Type</span><span class="kv-val">' + escapeHtml(v.type) + '</span></div>';
+      if (v.turnCount != null) html += '<div class="kv-row"><span class="kv-key">Turn Count</span><span class="kv-val">' + v.turnCount + '</span></div>';
+      if (v.impliedSuccess != null) html += '<div class="kv-row"><span class="kv-key">Implied Success</span><span class="kv-val">' + (v.impliedSuccess ? '&#10003; Yes' : '&#10007; No') + '</span></div>';
+      if (v.startTimeUtc) html += '<div class="kv-row"><span class="kv-key">Start Time</span><span class="kv-val">' + escapeHtml(v.startTimeUtc) + '</span></div>';
+      if (v.endTimeUtc) html += '<div class="kv-row"><span class="kv-key">End Time</span><span class="kv-val">' + escapeHtml(v.endTimeUtc) + '</span></div>';
+      if (v.startTimeUtc && v.endTimeUtc) {
+        const dur = Math.round((new Date(v.endTimeUtc) - new Date(v.startTimeUtc)) / 1000);
+        const mins = Math.floor(dur / 60); const secs = dur % 60;
+        html += '<div class="kv-row"><span class="kv-key">Duration</span><span class="kv-val">' + (mins > 0 ? mins + 'm ' : '') + secs + 's</span></div>';
+      }
+      html += '</div></div>';
+    }
+
+    // startConversation event
+    if (act.name === 'startConversation') {
+      html += '<div class="detail-section"><h4>Start Conversation</h4><div class="detail-content">';
+      if (act.channelId) html += '<div class="kv-row"><span class="kv-key">Channel</span><span class="kv-val">' + escapeHtml(act.channelId) + '</span></div>';
+      if (act.from) {
+        if (act.from.id) html += '<div class="kv-row"><span class="kv-key">User ID</span><span class="kv-val"><code>' + escapeHtml(act.from.id) + '</code></span></div>';
+        if (act.from.aadObjectId) html += '<div class="kv-row"><span class="kv-key">AAD Object ID</span><span class="kv-val"><code>' + escapeHtml(act.from.aadObjectId) + '</code></span></div>';
+      }
+      if (act.attachments && act.attachments.length) html += '<div class="kv-row"><span class="kv-key">Attachments</span><span class="kv-val">' + act.attachments.length + '</span></div>';
+      html += '</div></div>';
+    }
+
+    // DialogTracing event (with actions array)
+    if (act.name === 'DialogTracing' && act.value && act.value.actions) {
+      html += renderDialogActionsDetail(act.value.actions);
+    }
+
+    // VariableAssignment trace
+    if (act.type === 'trace' && vt === 'VariableAssignment' && act.value) {
+      const v = act.value;
+      const isGlobal = v.type === 'global';
+      const scopeLabel = isGlobal ? '<span style="color:var(--orange);font-weight:600;">Global</span>' : '<span style="color:var(--accent);font-weight:600;">Topic</span>';
+      html += '<div class="detail-section"><h4>Variable Assignment</h4><div class="detail-content">';
+      html += '<div class="kv-row"><span class="kv-key">Variable Name</span><span class="kv-val"><strong>' + escapeHtml(v.name || '') + '</strong></span></div>';
+      html += '<div class="kv-row"><span class="kv-key">Full ID</span><span class="kv-val"><code>' + escapeHtml(v.id || '') + '</code></span></div>';
+      html += '<div class="kv-row"><span class="kv-key">Scope</span><span class="kv-val">' + scopeLabel + '</span></div>';
+      var valStr = v.newValue == null ? 'null' : String(v.newValue);
+      var isJson = valStr.length > 2 && (valStr[0] === '{' || valStr[0] === '[');
+      if (isJson) {
+        try { var parsed = JSON.parse(valStr); html += '<div class="kv-row"><span class="kv-key">New Value</span><span class="kv-val"><pre style="margin:0;font-size:11px;white-space:pre-wrap;word-break:break-all;">' + escapeHtml(JSON.stringify(parsed, null, 2)) + '</pre></span></div>'; }
+        catch(e) { html += '<div class="kv-row"><span class="kv-key">New Value</span><span class="kv-val">' + escapeHtml(valStr) + '</span></div>'; }
+      } else {
+        html += '<div class="kv-row"><span class="kv-key">New Value</span><span class="kv-val">' + escapeHtml(valStr) + '</span></div>';
+      }
+      html += '</div></div>';
+    }
+
+    // DialogRedirect trace
+    if (act.type === 'trace' && vt === 'DialogRedirect' && act.value) {
+      const v = act.value;
+      const targetId = v.targetDialogId || '';
+      const resolved = friendlyComponentId(targetId);
+      html += '<div class="detail-section"><h4>Topic Redirect</h4><div class="detail-content">';
+      if (resolved) {
+        html += '<div class="kv-row"><span class="kv-key">Topic</span><span class="kv-val"><strong>' + escapeHtml(resolved) + '</strong></span></div>';
+      }
+      html += '<div class="kv-row"><span class="kv-key">Component ID</span><span class="kv-val"><code>' + escapeHtml(targetId) + '</code></span></div>';
+      if (v.targetDialogType != null) html += '<div class="kv-row"><span class="kv-key">Dialog Type</span><span class="kv-val">' + v.targetDialogType + '</span></div>';
+      html += '</div></div>';
     }
 
     // Plan Received
@@ -3052,73 +4348,29 @@
       }
     }
 
-    // Dialog Tracing — enrich InvokeAIBuilderModelAction with model details
+    // Dialog Tracing — use shared action detail renderer
     if (vt === 'DialogTracingInfo') {
       const actions = (act.value && act.value.actions) || [];
       if (actions.length) {
-        html += '<div class="detail-section"><h4>Dialog Actions (' + actions.length + ')</h4><div class="detail-content">';
-        actions.forEach((a, i) => {
-          html += '<div style="margin-bottom:8px;padding:8px;background:var(--bg);border-radius:4px;">';
-          html += '<div class="kv-row"><span class="kv-key">Action</span><span class="kv-val"><strong>' + escapeHtml(a.actionType || '') + '</strong></span></div>';
-          html += '<div class="kv-row"><span class="kv-key">Action ID</span><span class="kv-val"><code>' + escapeHtml(a.actionId || '') + '</code></span></div>';
-          const topicFriendly = friendlyTopicName(a.topicId);
-          if (topicFriendly && topicFriendly !== (a.topicId || '').split('.').pop()) {
-            html += '<div class="kv-row"><span class="kv-key">Topic</span><span class="kv-val"><strong style="color:var(--accent);">' + escapeHtml(topicFriendly) + '</strong> <code class="topic-schema-code">' + escapeHtml(a.topicId || '') + '</code></span></div>';
-          } else {
-            html += '<div class="kv-row"><span class="kv-key">Topic</span><span class="kv-val"><code>' + escapeHtml(a.topicId || '') + '</code></span></div>';
-          }
-          html += '<div class="kv-row"><span class="kv-key">Trigger</span><span class="kv-val">' + escapeHtml(a.triggerId || '') + '</span></div>';
-          if (a.exception) {
-            if (a.actionType === 'InvokeAIBuilderModelAction') {
-              html += '<div style="margin-top:4px;padding:8px;background:rgba(236,72,153,0.06);border:1px solid rgba(236,72,153,0.2);border-radius:6px;">';
-              html += '<div style="font-size:11px;font-weight:600;color:#ec4899;margin-bottom:4px;">\uD83E\uDDE0 AI Builder Validation Error</div>';
-              html += '<div style="color:var(--red);font-size:12px;">' + escapeHtml(a.exception) + '</div>';
-              var paramMatch = (a.exception || '').match(/parameter with name '([^']+)'/i);
-              if (paramMatch) {
-                html += '<div style="margin-top:4px;padding:4px 8px;background:rgba(248,81,73,0.08);border-radius:4px;font-size:11px;"><span style="color:var(--red);font-weight:600;">\u26A0 Missing required input:</span> <code style="color:var(--red);">' + escapeHtml(paramMatch[1]) + '</code></div>';
-              }
-              html += '</div>';
-            } else {
-              html += '<div class="kv-row"><span class="kv-key" style="color:var(--red);">Exception</span><span class="kv-val" style="color:var(--red);">' + escapeHtml(a.exception) + '</span></div>';
+        html += renderDialogActionsDetail(actions);
+        // Additional AI Builder output rendering for aib_Output
+        actions.forEach(function(a) {
+          if (a.variableState && a.variableState.dialogState && a.variableState.dialogState.aib_Output && typeof a.variableState.dialogState.aib_Output === 'object') {
+            const out = a.variableState.dialogState.aib_Output;
+            html += '<div class="detail-section"><h4>\uD83E\uDDE0 AI Builder Prediction Output</h4><div class="detail-content" style="background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.2);border-radius:6px;padding:8px;">';
+            if (out.modelName) html += '<div class="kv-row"><span class="kv-key">Model</span><span class="kv-val"><code>' + escapeHtml(out.modelName) + '</code></span></div>';
+            if (out.modelType) html += '<div class="kv-row"><span class="kv-key">Model Type</span><span class="kv-val">' + escapeHtml(out.modelType) + '</span></div>';
+            if (out.finishReason) html += '<div class="kv-row"><span class="kv-key">Finish Reason</span><span class="kv-val"><span class="finish-' + (out.finishReason === 'stop' ? 'stop' : 'length') + '" style="padding:1px 8px;border-radius:3px;">' + escapeHtml(out.finishReason) + '</span></span></div>';
+            if (out.promptTokens || out.completionTokens || out.totalTokens) {
+              html += '<div class="kv-row"><span class="kv-key">Tokens</span><span class="kv-val">' + (out.promptTokens || 0) + ' prompt + ' + (out.completionTokens || 0) + ' completion = <strong>' + (out.totalTokens || 0) + '</strong></span></div>';
             }
+            if (out.costAsCopilotCredits) html += '<div class="kv-row"><span class="kv-key">Copilot Credits</span><span class="kv-val" style="color:var(--orange);"><strong>' + out.costAsCopilotCredits + '</strong></span></div>';
+            if (out.costAsAiBuilderCredits) html += '<div class="kv-row"><span class="kv-key">AI Builder Credits</span><span class="kv-val"><strong>' + out.costAsAiBuilderCredits + '</strong></span></div>';
+            if (out.text) html += '<div style="margin-top:6px;"><div style="font-size:10px;color:var(--text-muted);margin-bottom:2px;">Generated Text:</div><div class="message-text" style="font-size:12px;">' + simpleMarkdown(out.text) + '</div></div>';
+            if (out.thoughtSteps) html += '<div style="margin-top:4px;border-left:3px solid var(--orange);padding-left:8px;font-style:italic;font-size:11px;">' + escapeHtml(out.thoughtSteps) + '</div>';
+            html += '</div></div>';
           }
-          if (a.resultTrace && Object.keys(a.resultTrace).length) {
-            html += '<div class="kv-row"><span class="kv-key">Result Trace</span><span class="kv-val"><pre style="margin:0;">' + escapeHtml(JSON.stringify(a.resultTrace, null, 2)) + '</pre></span></div>';
-          }
-          if (a.variableState) {
-            const ds = a.variableState.dialogState || {};
-            const gs = a.variableState.globalState || {};
-            if (Object.keys(ds).length || Object.keys(gs).length) {
-              // Special rendering for aib_Output (AI Builder prediction output)
-              if (ds.aib_Output && typeof ds.aib_Output === 'object') {
-                const out = ds.aib_Output;
-                html += '<div style="margin-top:6px;padding:8px;background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.2);border-radius:6px;">';
-                html += '<div style="font-size:11px;font-weight:600;color:var(--purple);margin-bottom:4px;">\uD83E\uDDE0 AI Builder Prediction Output</div>';
-                if (out.modelName) html += '<div class="kv-row"><span class="kv-key">Model</span><span class="kv-val"><code>' + escapeHtml(out.modelName) + '</code></span></div>';
-                if (out.modelType) html += '<div class="kv-row"><span class="kv-key">Model Type</span><span class="kv-val">' + escapeHtml(out.modelType) + '</span></div>';
-                if (out.finishReason) html += '<div class="kv-row"><span class="kv-key">Finish Reason</span><span class="kv-val"><span class="finish-' + (out.finishReason === 'stop' ? 'stop' : 'length') + '" style="padding:1px 8px;border-radius:3px;">' + escapeHtml(out.finishReason) + '</span></span></div>';
-                if (out.promptTokens || out.completionTokens || out.totalTokens) {
-                  html += '<div class="kv-row"><span class="kv-key">Tokens</span><span class="kv-val">' + (out.promptTokens || 0) + ' prompt + ' + (out.completionTokens || 0) + ' completion = <strong>' + (out.totalTokens || 0) + '</strong></span></div>';
-                }
-                if (out.costAsCopilotCredits) html += '<div class="kv-row"><span class="kv-key">Copilot Credits</span><span class="kv-val" style="color:var(--orange);"><strong>' + out.costAsCopilotCredits + '</strong></span></div>';
-                if (out.costAsAiBuilderCredits) html += '<div class="kv-row"><span class="kv-key">AI Builder Credits</span><span class="kv-val"><strong>' + out.costAsAiBuilderCredits + '</strong></span></div>';
-                if (out.text) html += '<div style="margin-top:6px;"><div style="font-size:10px;color:var(--text-muted);margin-bottom:2px;">Generated Text:</div><div class="message-text" style="font-size:12px;">' + simpleMarkdown(out.text) + '</div></div>';
-                if (out.thoughtSteps) html += '<div style="margin-top:4px;border-left:3px solid var(--orange);padding-left:8px;font-style:italic;font-size:11px;">' + escapeHtml(out.thoughtSteps) + '</div>';
-                html += '</div>';
-                // Show remaining variables (excluding aib_Output)
-                const remaining = Object.assign({}, ds);
-                delete remaining.aib_Output;
-                if (Object.keys(remaining).length || Object.keys(gs).length) {
-                  html += '<div class="kv-row"><span class="kv-key">Other Variables</span><span class="kv-val"><pre style="margin:0;">' + escapeHtml(JSON.stringify({ dialogState: remaining, globalState: gs }, null, 2)) + '</pre></span></div>';
-                }
-              } else {
-                html += '<div class="kv-row"><span class="kv-key">Variables</span><span class="kv-val"><pre style="margin:0;">' + escapeHtml(JSON.stringify(a.variableState, null, 2)) + '</pre></span></div>';
-              }
-            }
-          }
-          html += '</div>';
         });
-        html += '</div></div>';
       }
     }
 
@@ -3155,12 +4407,13 @@
     }
 
     // Auto-render unknown event types as KV table
-    const knownVTs = ['DynamicPlanReceived','DynamicPlanReceivedDebug','DynamicPlanStepTriggered','DynamicPlanStepBindUpdate','DynamicPlanStepFinished','DynamicPlanFinished','UniversalSearchToolTraceData','DialogTracingInfo','GenerativeAnswersSupportData','AIBuilderTraceData'];
-    if (act.type === 'event' && act.value && typeof act.value === 'object' && !knownVTs.includes(vt) && vt !== '') {
+    const knownVTs = ['DynamicPlanReceived','DynamicPlanReceivedDebug','DynamicPlanStepTriggered','DynamicPlanStepBindUpdate','DynamicPlanStepFinished','DynamicPlanFinished','UniversalSearchToolTraceData','DialogTracingInfo','GenerativeAnswersSupportData','AIBuilderTraceData','SessionInfo','ConversationInfo'];
+    const knownNames = ['startConversation','DialogTracing','ProtocolInfo'];
+    if (act.type === 'event' && act.value && typeof act.value === 'object' && !knownVTs.includes(vt) && !knownNames.includes(act.name || '') && vt !== '') {
       html += '<div class="detail-section"><h4>Event Data (' + escapeHtml(vt) + ')</h4><div class="detail-content auto-kv-section">';
       html += renderAutoKV(act.value);
       html += '</div></div>';
-    } else if (act.type === 'event' && act.value && typeof act.value === 'object' && !vt && !knownVTs.includes(act.name || '')) {
+    } else if (act.type === 'event' && act.value && typeof act.value === 'object' && !vt && !knownVTs.includes(act.name || '') && !knownNames.includes(act.name || '')) {
       html += '<div class="detail-section"><h4>Event Data</h4><div class="detail-content auto-kv-section">';
       html += renderAutoKV(act.value);
       html += '</div></div>';
@@ -3243,8 +4496,14 @@
       h4.addEventListener('click', function handler() {
         el.classList.toggle('hidden');
         if (!el._jsonBuilt && el._jsonData) {
-          el.innerHTML = '<div class="json-tree">' + buildJsonTree(el._jsonData) + '</div>';
+          el.innerHTML = '<div class="jt-toolbar"><button class="jt-expand-all">&#9660; Expand All</button><button class="jt-collapse-all">&#9650; Collapse All</button></div><div class="json-tree">' + buildJsonTree(el._jsonData) + '</div>';
           el._jsonBuilt = true;
+          el.querySelector('.jt-expand-all').addEventListener('click', () => {
+            el.querySelectorAll('.jt-node.jt-collapsed').forEach(n => { n.classList.remove('jt-collapsed'); n.classList.add('jt-expanded'); });
+          });
+          el.querySelector('.jt-collapse-all').addEventListener('click', () => {
+            el.querySelectorAll('.jt-node.jt-expanded').forEach(n => { n.classList.remove('jt-expanded'); n.classList.add('jt-collapsed'); });
+          });
           // Wire toggle clicks
           el.querySelectorAll('.jt-toggle').forEach(t => {
             t.addEventListener('click', () => {
@@ -3274,6 +4533,8 @@
     viewer.classList.add('hidden');
     uploadZone.classList.remove('hidden');
     document.querySelector('.social-links-home').classList.remove('hidden');
+    document.getElementById('dv-section').classList.remove('hidden');
+    document.querySelector('.dv-or-divider').classList.remove('hidden');
     document.querySelector('.container').classList.remove('app-active');
     toolbar.innerHTML = '';
     convInfo.innerHTML = '';
@@ -3331,6 +4592,8 @@
 
     uploadZone.classList.add('hidden');
     document.querySelector('.social-links-home').classList.add('hidden');
+    document.getElementById('dv-section').classList.add('hidden');
+    document.querySelector('.dv-or-divider').classList.add('hidden');
     viewer.classList.remove('hidden');
     document.querySelector('.container').classList.add('app-active');
 
@@ -3421,11 +4684,14 @@
         // Re-apply active filter when clearing search
         if (activeFilter !== 'all') {
           timeline.querySelectorAll('.step').forEach(s => {
-            if (s.dataset.cat === activeFilter) s.classList.remove('hidden');
+            if (activeFilter === 'orchestrator') {
+              if (s.dataset.orchestrator === 'true') s.classList.remove('hidden');
+              else s.classList.add('hidden');
+            } else if (s.dataset.cat === activeFilter) s.classList.remove('hidden');
             else s.classList.add('hidden');
           });
           timeline.querySelectorAll('.plan-group').forEach(pg => {
-            if (activeFilter === 'plan') { pg.classList.remove('hidden'); }
+            if (activeFilter === 'plan' || activeFilter === 'orchestrator') { pg.classList.remove('hidden'); }
             else {
               const hasVisible = pg.querySelector('.step:not(.hidden)');
               if (hasVisible) pg.classList.remove('hidden');
@@ -3513,7 +4779,7 @@
     }
 
     // Extract conversation info
-    const firstMsg = activities.find(a => a.type === 'message' && a.from && a.from.role === 'bot');
+    const firstMsg = activities.find(a => a.type === 'message' && a.from && (a.from.role === 'bot' || a.from.role === 0));
     const userMsg = activities.find(a => isUserMsg(a));
     const botName = firstMsg ? (firstMsg.from.name || 'Bot') : 'Bot';
     const convId = (firstMsg && firstMsg.conversation) ? firstMsg.conversation.id : '';
@@ -3527,6 +4793,10 @@
       const t = getTs(activities[i]);
       if (t) { lastTs = t; break; }
     }
+
+    // Extract SessionInfo and ConversationInfo traces
+    const sessionInfo = activities.find(a => a.type === 'trace' && a.valueType === 'SessionInfo' && a.value);
+    const convInfoTrace = activities.find(a => a.type === 'trace' && a.valueType === 'ConversationInfo' && a.value);
 
     convInfo.innerHTML = '';
     [
@@ -3542,6 +4812,55 @@
       div.innerHTML = '<label>' + label + '</label><span>' + escapeHtml(String(value)) + '</span>';
       convInfo.appendChild(div);
     });
+
+    // Append SessionInfo row if available
+    if (sessionInfo && sessionInfo.value) {
+      const sv = sessionInfo.value;
+      const sessionItems = [];
+      if (sv.outcome) {
+        const cls = sv.outcome.toLowerCase() === 'resolved' ? 'outcome-resolved'
+          : sv.outcome.toLowerCase() === 'abandoned' ? 'outcome-abandoned'
+          : sv.outcome.toLowerCase() === 'escalated' ? 'outcome-escalated' : '';
+        sessionItems.push(['Outcome', '<span class="' + cls + '">' + escapeHtml(sv.outcome) + (sv.outcomeReason && sv.outcomeReason !== sv.outcome ? ' (' + escapeHtml(sv.outcomeReason) + ')' : '') + '</span>']);
+      }
+      if (sv.type) sessionItems.push(['Session Type', escapeHtml(sv.type)]);
+      if (sv.turnCount != null) sessionItems.push(['Turns', escapeHtml(String(sv.turnCount))]);
+      if (sv.impliedSuccess != null) sessionItems.push(['Success', sv.impliedSuccess ? '&#10003; Yes' : '&#10007; No']);
+      if (sv.startTimeUtc && sv.endTimeUtc) {
+        const dur = Math.round((new Date(sv.endTimeUtc) - new Date(sv.startTimeUtc)) / 1000);
+        const mins = Math.floor(dur / 60);
+        const secs = dur % 60;
+        sessionItems.push(['Duration', (mins > 0 ? mins + 'm ' : '') + secs + 's']);
+      }
+      if (sessionItems.length) {
+        const row = document.createElement('div');
+        row.className = 'dv-session-info';
+        sessionItems.forEach(([label, valueHtml]) => {
+          const div = document.createElement('div');
+          div.className = 'info-item';
+          div.innerHTML = '<label>' + label + '</label><span>' + valueHtml + '</span>';
+          row.appendChild(div);
+        });
+        convInfo.appendChild(row);
+      }
+    }
+
+    // Append ConversationInfo metadata if available
+    if (convInfoTrace && convInfoTrace.value) {
+      const cv = convInfoTrace.value;
+      if (cv.isDesignMode) {
+        const div = document.createElement('div');
+        div.className = 'info-item';
+        div.innerHTML = '<label>Mode</label><span class="design-mode">&#9881; Design / Test</span>';
+        convInfo.appendChild(div);
+      }
+      if (cv.locale) {
+        const div = document.createElement('div');
+        div.className = 'info-item';
+        div.innerHTML = '<label>Locale</label><span>' + escapeHtml(cv.locale) + '</span>';
+        convInfo.appendChild(div);
+      }
+    }
 
     // Build steps + detect errors/warnings
     const steps = [];
@@ -3655,8 +4974,8 @@
         });
       }
     });
-    const _parentAgentName = (activities.find(a => a.from && a.from.role === 'bot' && a.from.name) || {}).from
-      ? activities.find(a => a.from && a.from.role === 'bot' && a.from.name).from.name
+    const _parentAgentName = (activities.find(a => a.from && (a.from.role === 'bot' || a.from.role === 0) && a.from.name) || {}).from
+      ? activities.find(a => a.from && (a.from.role === 'bot' || a.from.role === 0) && a.from.name).from.name
       : 'Parent Agent';
     const _connAgentSet = new Set(); // unique connected agent display names
     activities.forEach((act, idx) => {
@@ -3703,6 +5022,16 @@
       btn.innerHTML = label + ' <span class="count">' + catCounts[cat] + '</span>';
       btn.dataset.filter = cat;
       filterBar.appendChild(btn);
+    }
+
+    // Orchestrator meta-filter: count all steps with isOrchestrator
+    const orchCount = steps.filter(s => s.cls.isOrchestrator).length;
+    if (orchCount > 0) {
+      const orchBtn = document.createElement('button');
+      orchBtn.className = 'filter-btn orchestrator-filter';
+      orchBtn.innerHTML = 'Orchestrator <span class="count">' + orchCount + '</span>';
+      orchBtn.dataset.filter = 'orchestrator';
+      filterBar.appendChild(orchBtn);
     }
 
     // === Agent isolation toggle (only if connected agents exist) ===
@@ -3783,12 +5112,17 @@
       activeFilter = f;
       // Show/hide individual steps
       timeline.querySelectorAll('.step').forEach(s => {
-        if (f === 'all' || s.dataset.cat === f) s.classList.remove('hidden');
+        if (f === 'all') s.classList.remove('hidden');
+        else if (f === 'orchestrator') {
+          if (s.dataset.orchestrator === 'true') s.classList.remove('hidden');
+          else s.classList.add('hidden');
+        }
+        else if (s.dataset.cat === f) s.classList.remove('hidden');
         else s.classList.add('hidden');
       });
-      // Show/hide plan groups: show if any child is visible, or if filter is 'all' or 'plan'
+      // Show/hide plan groups: show if any child is visible, or if filter is 'all' or 'plan' or 'orchestrator'
       timeline.querySelectorAll('.plan-group').forEach(pg => {
-        if (f === 'all' || f === 'plan') {
+        if (f === 'all' || f === 'plan' || f === 'orchestrator') {
           pg.classList.remove('hidden');
         } else {
           const hasVisible = pg.querySelector('.step:not(.hidden)');
@@ -3899,8 +5233,9 @@
 
     function createStepEl(act, cls, title, affiliatedPlanId, activityIndex) {
       const step = document.createElement('div');
-      step.className = 'step type-' + cls.cat;
+      step.className = 'step type-' + cls.cat + (cls.isOrchestrator ? ' orchestrator' : '');
       step.dataset.cat = cls.cat;
+      if (cls.isOrchestrator) step.dataset.orchestrator = 'true';
       step._actRef = act; // reference for error banner jump-to
       // Tag with connected agent context
       const agentCtx = activityAgentContext[activityIndex];
@@ -4419,7 +5754,7 @@
 
       chatActivities.forEach(act => {
         const isUser = isUserMsg(act);
-        const isBot = act.from && act.from.role === 'bot';
+        const isBot = act.from && (act.from.role === 'bot' || act.from.role === 0);
         if (!isUser && !isBot) return;
 
         const bubble = document.createElement('div');
@@ -7418,6 +8753,7 @@ ${toggleScript}
     })();
 
 })();
+} // end else (not in popup)
 </script>
 </body>
 </html>
